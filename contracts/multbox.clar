@@ -137,7 +137,7 @@
 )
     (let (
         (proposer tx-sender)
-        (is-member (map-get? board-members proposer))
+        (is-member (default-to false (map-get? board-members proposer)))
         (tx-id (var-get next-transaction-id))
     )
         (asserts! (var-get initialized) (err u1004)) ;; Contract not initialized
@@ -172,7 +172,7 @@
 (define-public (approve-transaction (tx-id uint))
     (let (
         (approver tx-sender)
-        (is-member (map-get? board-members approver))
+        (is-member (default-to false (map-get? board-members approver)))
     )
         (asserts! (var-get initialized) (err u1004)) ;; Contract not initialized
         (asserts! is-member (err u1005)) ;; Only board members can approve
