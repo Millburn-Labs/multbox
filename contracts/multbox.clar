@@ -263,8 +263,13 @@
                 ;; Execute the transfer
                 (match token-contract
                     (some contract-principal)
-                    ;; Transfer fungible tokens using the contract principal
-                    (try! (as-contract (contract-call? (contract-of contract-principal) transfer amount tx-sender recipient none)))
+                    ;; Transfer fungible tokens
+                    ;; Note: contract-principal should be a contract principal
+                    ;; We use contract-call? with the principal directly
+                    ;; The contract must implement SIP010Trait
+                    (try! (as-contract 
+                        (contract-call? contract-principal transfer amount tx-sender recipient none)
+                    ))
                     ;; Transfer STX
                     (try! (as-contract (stx-transfer? amount tx-sender recipient)))
                 )
