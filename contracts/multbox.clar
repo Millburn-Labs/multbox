@@ -267,7 +267,7 @@
                 })
                 
                 ;; Execute the transfer
-                (match token-contract contract-principal
+                (try! (match token-contract contract-principal
                     ;; For token transfers, the contract principal is stored
                     ;; but we need the contract identifier to call it
                     ;; For now, we'll support STX transfers only
@@ -276,7 +276,7 @@
                     ;; Transfer STX - contract must hold the STX balance
                     ;; In Clarity, stx-transfer? from a contract uses the contract as sender
                     (stx-transfer? amount tx-sender recipient)
-                )
+                ))
                 
                 (ok true)
             )
