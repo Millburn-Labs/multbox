@@ -19,8 +19,9 @@
 
 ;; Data maps
 (define-map board-members principal bool)
-;; Nested map: transaction-id -> (member -> approved)
-(define-map transaction-approvals-by-tx uint (map principal bool))
+;; Approval tracking: composite key using string concatenation
+;; Format: "{tx-id}-{principal}" -> bool
+(define-map transaction-approvals (string-ascii 200) bool)
 (define-map transactions uint {
     proposer: principal,
     recipient: principal,
@@ -54,11 +55,8 @@
 
 ;; Get approval status for a specific transaction and member
 (define-read-only (has-approved (tx-id uint) (member principal))
-    (let ((approvals-map (map-get? transaction-approvals-by-tx tx-id)))
-        (match approvals-map
-            approvals (default-to false (map-get? approvals member))
-            false
-        )
+    (let ((approval-key (concat (unwrap-panic (to-string-ascii tx-id)) (unwrap-panic (principal-to-string member)))))
+        (default-to false (map-get? transaction-approvals approval-key))
     )
 )
 
@@ -140,30 +138,31 @@
         (is-member (default-to false (map-get? board-members proposer)))
         (tx-id (var-get next-transaction-id))
     )
-        (asserts! (var-get initialized) (err u1004)) ;; Contract not initialized
-        (asserts! is-member (err u1005)) ;; Only board members can propose
-        (asserts! (not (is-eq amount u0)) (err u1006)) ;; Amount must be greater than 0
-        
-        ;; Create new transaction
-        (map-insert transactions tx-id {
-            proposer: proposer,
-            recipient: recipient,
-            amount: amount,
-            token-contract: token-contract,
-            executed: false,
-            approval-count: u0
-        })
-        
-        ;; Initialize approvals map for this transaction
-        (map-insert transaction-approvals-by-tx tx-id (map))
-        
-        ;; Increment transaction ID
-        (var-set next-transaction-id (+ tx-id u1))
-        
-        ;; Auto-approve by proposer
-        (try! (approve-transaction-internal tx-id proposer))
-        
-        (ok tx-id)
+        (begin
+            (asserts! (var-get initialized) (err u1004)) ;; Contract not initialized
+            (asserts! is-member (err u1005)) ;; Only board members can propose
+            (asserts! (not (is-eq amount u0)) (err u1006)) ;; Amount must be greater than 0
+            
+            ;; Create new transaction
+            (map-insert transactions tx-id {
+                proposer: proposer,
+                recipient: recipient,
+                amount: amount,
+                token-contract: token-contract,
+                executed: false,
+                approval-count: u0
+            })
+            
+            ;; Approval will be tracked using composite key
+            
+            ;; Increment transaction ID
+            (var-set next-transaction-id (+ tx-id u1))
+            
+            ;; Auto-approve by proposer
+            (try! (approve-transaction-internal tx-id proposer))
+            
+            (ok tx-id)
+        )
     )
 )
 
@@ -185,14 +184,10 @@
 (define-private (approve-transaction-internal (tx-id uint) (approver principal))
     (let (
         (tx-opt (map-get? transactions tx-id))
-        (approvals-map-opt (map-get? transaction-approvals-by-tx tx-id))
-        (already-approved (match approvals-map-opt
-            approvals (default-to false (map-get? approvals approver))
-            false
-        ))
+        (approval-key (concat (unwrap-panic (to-string-ascii tx-id)) (unwrap-panic (principal-to-string approver))))
+        (already-approved (default-to false (map-get? transaction-approvals approval-key)))
     )
         (asserts! tx-opt (err u1007)) ;; Transaction does not exist
-        (asserts! approvals-map-opt (err u1007)) ;; Approvals map should exist
         (asserts! (not already-approved) (err u1008)) ;; Already approved
         
         (match tx-opt
@@ -202,14 +197,8 @@
             )
                 (asserts! (not executed) (err u1009)) ;; Transaction already executed
                 
-                ;; Record approval in the nested map
-                (match approvals-map-opt
-                    approvals
-                    (begin
-                        (map-insert approvals approver true)
-                        (map-set transaction-approvals-by-tx tx-id approvals)
-                    )
-                )
+                ;; Record approval
+                (map-insert transaction-approvals approval-key true)
                 
                 ;; Increment approval count
                 (let ((new-count (+ (get approval-count tx) u1)))
