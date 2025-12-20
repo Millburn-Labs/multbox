@@ -7,7 +7,16 @@
   "scripts": {
     "test": "vitest run",
     "test:report": "vitest run -- --coverage --costs",
-    "test:watch": "chokidar \"tests/**/*.ts\" \"contracts/**/*.clar\" -c \"npm run test:report\""
+    "test:watch": "chokidar \"tests/**/*.ts\" \"contracts/**/*.clar\" -c \"npm run test:report\"",
+    "chainhooks": "tsx src/cli.ts",
+    "chainhooks:register": "tsx src/cli.ts register",
+    "chainhooks:register-proposal": "tsx src/cli.ts register-proposal",
+    "chainhooks:register-approval": "tsx src/cli.ts register-approval",
+    "chainhooks:register-execution": "tsx src/cli.ts register-execution",
+    "chainhooks:list": "tsx src/cli.ts list",
+    "chainhooks:delete": "tsx src/cli.ts delete",
+    "chainhooks:delete-all": "tsx src/cli.ts delete-all",
+    "webhook:server": "tsx src/webhook-server.example.ts"
   },
   "author": "",
   "license": "ISC",
@@ -17,7 +26,12 @@
     "@stacks/transactions": "^7.2.0",
     "@types/node": "^24.4.0",
     "chokidar-cli": "^3.0.0",
+    "tsx": "^4.21.0",
     "vitest": "^4.0.7",
     "vitest-environment-clarinet": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "express": "^4.18.2"
   }
 }
