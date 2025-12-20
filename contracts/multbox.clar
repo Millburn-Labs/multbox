@@ -267,11 +267,12 @@
                 })
                 
                 ;; Execute the transfer
-                (match token-contract
-                    (some contract-principal)
-                    ;; Transfer fungible tokens
-                    ;; Call the token contract's transfer function
-                    (try! (contract-call? contract-principal transfer amount tx-sender recipient none))
+                (match token-contract contract-principal
+                    ;; For token transfers, the contract principal is stored
+                    ;; but we need the contract identifier to call it
+                    ;; For now, we'll support STX transfers only
+                    ;; Token transfers would require the contract identifier string
+                    (try! (err u1012)) ;; Token transfers not yet supported - use STX instead
                     ;; Transfer STX - contract must hold the STX balance
                     ;; In Clarity, stx-transfer? from a contract uses the contract as sender
                     (try! (stx-transfer? amount tx-sender recipient))
