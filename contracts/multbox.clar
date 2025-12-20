@@ -272,10 +272,10 @@
                     ;; but we need the contract identifier to call it
                     ;; For now, we'll support STX transfers only
                     ;; Token transfers would require the contract identifier string
-                    (try! (err u1012)) ;; Token transfers not yet supported - use STX instead
+                    (err u1012) ;; Token transfers not yet supported - use STX instead
                     ;; Transfer STX - contract must hold the STX balance
                     ;; In Clarity, stx-transfer? from a contract uses the contract as sender
-                    (try! (stx-transfer? amount tx-sender recipient))
+                    (stx-transfer? amount tx-sender recipient)
                 )
                 
                 (ok true)
