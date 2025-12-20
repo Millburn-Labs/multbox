@@ -19,9 +19,9 @@
 
 ;; Data maps
 (define-map board-members principal bool)
-;; Approval tracking: composite key using string concatenation
-;; Format: "{tx-id}-{principal}" -> bool
-(define-map transaction-approvals (string-ascii 200) bool)
+;; Approval tracking: using buff for composite key
+;; Format: tx-id (32 bytes) + principal (20 bytes) = 52 bytes
+(define-map transaction-approvals buff bool)
 (define-map transactions uint {
     proposer: principal,
     recipient: principal,
@@ -55,7 +55,7 @@
 
 ;; Get approval status for a specific transaction and member
 (define-read-only (has-approved (tx-id uint) (member principal))
-    (let ((approval-key (concat (unwrap-panic (to-string-ascii tx-id)) (unwrap-panic (principal-to-string member)))))
+    (let ((approval-key (concat (unwrap-panic (to-consensus-buff tx-id)) (unwrap-panic (principal-to-buff member)))))
         (default-to false (map-get? transaction-approvals approval-key))
     )
 )
