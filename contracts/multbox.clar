@@ -19,8 +19,8 @@
 
 ;; Data maps
 (define-map board-members principal bool)
-;; Nested map for approvals: transaction-id -> (member -> approved)
-(define-map transaction-approvals-by-tx uint (map principal bool))
+;; Approval tracking: transaction-id -> list of approvers
+(define-map transaction-approvers uint (list 20 principal))
 (define-map transactions uint {
     proposer: principal,
     recipient: principal,
@@ -54,9 +54,9 @@
 
 ;; Get approval status for a specific transaction and member
 (define-read-only (has-approved (tx-id uint) (member principal))
-    (let ((approvals-map-opt (map-get? transaction-approvals-by-tx tx-id)))
-        (match approvals-map-opt
-            approvals (default-to false (map-get? approvals member))
+    (let ((approvers-opt (map-get? transaction-approvers tx-id)))
+        (match approvers-opt
+            approvers (is-some (index-of approvers member))
             false
         )
     )
@@ -65,7 +65,7 @@
 ;; Get the number of approvals for a transaction
 (define-read-only (get-approval-count (tx-id uint))
     (match (map-get? transactions tx-id)
-        tx (get approval-count tx)
+        tx (ok (get approval-count tx))
         (ok u0)
     )
 )
@@ -101,26 +101,26 @@
     (match (as-max-len? members u20)
         members-list
         (begin
-            (map-insert board-members (element-at members-list u0) true)
-            (map-insert board-members (element-at members-list u1) true)
-            (map-insert board-members (element-at members-list u2) true)
-            (map-insert board-members (element-at members-list u3) true)
-            (map-insert board-members (element-at members-list u4) true)
-            (map-insert board-members (element-at members-list u5) true)
-            (map-insert board-members (element-at members-list u6) true)
-            (map-insert board-members (element-at members-list u7) true)
-            (map-insert board-members (element-at members-list u8) true)
-            (map-insert board-members (element-at members-list u9) true)
-            (map-insert board-members (element-at members-list u10) true)
-            (map-insert board-members (element-at members-list u11) true)
-            (map-insert board-members (element-at members-list u12) true)
-            (map-insert board-members (element-at members-list u13) true)
-            (map-insert board-members (element-at members-list u14) true)
-            (map-insert board-members (element-at members-list u15) true)
-            (map-insert board-members (element-at members-list u16) true)
-            (map-insert board-members (element-at members-list u17) true)
-            (map-insert board-members (element-at members-list u18) true)
-            (map-insert board-members (element-at members-list u19) true)
+            (map-insert board-members (unwrap-panic (element-at members-list u0)) true)
+            (map-insert board-members (unwrap-panic (element-at members-list u1)) true)
+            (map-insert board-members (unwrap-panic (element-at members-list u2)) true)
+            (map-insert board-members (unwrap-panic (element-at members-list u3)) true)
+            (map-insert board-members (unwrap-panic (element-at members-list u4)) true)
+            (map-insert board-members (unwrap-panic (element-at members-list u5)) true)
+            (map-insert board-members (unwrap-panic (element-at members-list u6)) true)
+            (map-insert board-members (unwrap-panic (element-at members-list u7)) true)
+            (map-insert board-members (unwrap-panic (element-at members-list u8)) true)
+            (map-insert board-members (unwrap-panic (element-at members-list u9)) true)
+            (map-insert board-members (unwrap-panic (element-at members-list u10)) true)
+            (map-insert board-members (unwrap-panic (element-at members-list u11)) true)
+            (map-insert board-members (unwrap-panic (element-at members-list u12)) true)
+            (map-insert board-members (unwrap-panic (element-at members-list u13)) true)
+            (map-insert board-members (unwrap-panic (element-at members-list u14)) true)
+            (map-insert board-members (unwrap-panic (element-at members-list u15)) true)
+            (map-insert board-members (unwrap-panic (element-at members-list u16)) true)
+            (map-insert board-members (unwrap-panic (element-at members-list u17)) true)
+            (map-insert board-members (unwrap-panic (element-at members-list u18)) true)
+            (map-insert board-members (unwrap-panic (element-at members-list u19)) true)
             (var-set board-member-count BOARD_SIZE)
             (ok true)
         )
@@ -155,7 +155,7 @@
                 approval-count: u0
             })
             
-            ;; Approval will be tracked using composite key
+            ;; Approval list will be created on first approval
             
             ;; Increment transaction ID
             (var-set next-transaction-id (+ tx-id u1))
@@ -186,13 +186,13 @@
 (define-private (approve-transaction-internal (tx-id uint) (approver principal))
     (let (
         (tx-opt (map-get? transactions tx-id))
-        (approvals-map-opt (map-get? transaction-approvals-by-tx tx-id))
-        (already-approved (match approvals-map-opt
-            approvals (default-to false (map-get? approvals approver))
+        (approvers-opt (map-get? transaction-approvers tx-id))
+        (already-approved (match approvers-opt
+            approvers (is-some (index-of approvers approver))
             false
         ))
     )
-        (asserts! tx-opt (err u1007)) ;; Transaction does not exist
+        (asserts! (is-some tx-opt) (err u1007)) ;; Transaction does not exist
         (asserts! (not already-approved) (err u1008)) ;; Already approved
         
         (match tx-opt
@@ -202,26 +202,19 @@
             )
                 (asserts! (not executed) (err u1009)) ;; Transaction already executed
                 
-                ;; Record approval in nested map
-                (match approvals-map-opt
-                    approvals
-                    (begin
-                        (map-insert approvals approver true)
-                        (map-set transaction-approvals-by-tx tx-id approvals)
-                    )
-                    ;; Create nested map on first approval by inserting a dummy then replacing
-                    (begin
-                        ;; Insert dummy value to create the nested map structure
-                        (map-insert transaction-approvals-by-tx tx-id (map))
-                        ;; Now get it and insert the real approval
-                        (match (map-get? transaction-approvals-by-tx tx-id)
-                            new-approvals
-                            (begin
-                                (map-insert new-approvals approver true)
-                                (map-set transaction-approvals-by-tx tx-id new-approvals)
-                            )
+                ;; Add approver to the list
+                (match approvers-opt
+                    approvers
+                    (try! (match (as-max-len? (append approvers approver) u20)
+                        new-approvers 
+                        (begin
+                            (map-set transaction-approvers tx-id new-approvers)
+                            (ok true)
                         )
-                    )
+                        (err u1011) ;; List too long (shouldn't happen)
+                    ))
+                    ;; First approval - create new list
+                    (map-insert transaction-approvers tx-id (list approver))
                 )
                 
                 ;; Increment approval count
@@ -249,7 +242,7 @@
         (tx-opt (map-get? transactions tx-id))
     )
         (asserts! (var-get initialized) (err u1004)) ;; Contract not initialized
-        (asserts! tx-opt (err u1007)) ;; Transaction does not exist
+        (asserts! (is-some tx-opt) (err u1007)) ;; Transaction does not exist
         
         (match tx-opt
             tx
@@ -277,14 +270,11 @@
                 (match token-contract
                     (some contract-principal)
                     ;; Transfer fungible tokens
-                    ;; Note: contract-principal should be a contract principal
-                    ;; We use contract-call? with the principal directly
-                    ;; The contract must implement SIP010Trait
-                    (try! (as-contract 
-                        (contract-call? contract-principal transfer amount tx-sender recipient none)
-                    ))
-                    ;; Transfer STX
-                    (try! (as-contract (stx-transfer? amount tx-sender recipient)))
+                    ;; Call the token contract's transfer function
+                    (try! (contract-call? contract-principal transfer amount tx-sender recipient none))
+                    ;; Transfer STX - contract must hold the STX balance
+                    ;; In Clarity, stx-transfer? from a contract uses the contract as sender
+                    (try! (stx-transfer? amount tx-sender recipient))
                 )
                 
                 (ok true)
