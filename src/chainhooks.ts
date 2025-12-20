@@ -37,22 +37,29 @@ export class MultboxChainhooks {
    */
   async registerProposalHook() {
     const hook = {
-      version: 1,
+      version: '1' as const,
       name: `multbox-proposal-hook-${this.config.network}`,
       chain: 'stacks' as const,
       network: this.config.network === 'devnet' ? 'testnet' : this.config.network,
       filters: {
-        scope: 'contract_call' as const,
-        contract_identifier: `${this.config.contractAddress}.multbox`,
-        method: 'propose-transaction',
+        events: [
+          {
+            type: 'contract_call' as const,
+            contract_identifier: `${this.config.contractAddress}.multbox`,
+            function_name: 'propose-transaction',
+          },
+        ],
       },
       action: {
-        http_post: {
-          url: `${this.config.webhookUrl}/proposal`,
-          authorization_header: this.config.webhookSecret 
-            ? `Bearer ${this.config.webhookSecret}` 
-            : undefined,
-        },
+        type: 'http_post' as const,
+        url: `${this.config.webhookUrl}/proposal`,
+        authorization_header: this.config.webhookSecret 
+          ? `Bearer ${this.config.webhookSecret}` 
+          : undefined,
+      },
+      options: {
+        enable_on_registration: true,
+        decode_clarity_values: true,
       },
     };
 
@@ -71,22 +78,29 @@ export class MultboxChainhooks {
    */
   async registerApprovalHook() {
     const hook = {
-      version: 1,
+      version: '1' as const,
       name: `multbox-approval-hook-${this.config.network}`,
       chain: 'stacks' as const,
       network: this.config.network === 'devnet' ? 'testnet' : this.config.network,
       filters: {
-        scope: 'contract_call' as const,
-        contract_identifier: `${this.config.contractAddress}.multbox`,
-        method: 'approve-transaction',
+        events: [
+          {
+            type: 'contract_call' as const,
+            contract_identifier: `${this.config.contractAddress}.multbox`,
+            function_name: 'approve-transaction',
+          },
+        ],
       },
       action: {
-        http_post: {
-          url: `${this.config.webhookUrl}/approval`,
-          authorization_header: this.config.webhookSecret 
-            ? `Bearer ${this.config.webhookSecret}` 
-            : undefined,
-        },
+        type: 'http_post' as const,
+        url: `${this.config.webhookUrl}/approval`,
+        authorization_header: this.config.webhookSecret 
+          ? `Bearer ${this.config.webhookSecret}` 
+          : undefined,
+      },
+      options: {
+        enable_on_registration: true,
+        decode_clarity_values: true,
       },
     };
 
@@ -105,22 +119,29 @@ export class MultboxChainhooks {
    */
   async registerExecutionHook() {
     const hook = {
-      version: 1,
+      version: '1' as const,
       name: `multbox-execution-hook-${this.config.network}`,
       chain: 'stacks' as const,
       network: this.config.network === 'devnet' ? 'testnet' : this.config.network,
       filters: {
-        scope: 'contract_call' as const,
-        contract_identifier: `${this.config.contractAddress}.multbox`,
-        method: 'execute-transaction',
+        events: [
+          {
+            type: 'contract_call' as const,
+            contract_identifier: `${this.config.contractAddress}.multbox`,
+            function_name: 'execute-transaction',
+          },
+        ],
       },
       action: {
-        http_post: {
-          url: `${this.config.webhookUrl}/execution`,
-          authorization_header: this.config.webhookSecret 
-            ? `Bearer ${this.config.webhookSecret}` 
-            : undefined,
-        },
+        type: 'http_post' as const,
+        url: `${this.config.webhookUrl}/execution`,
+        authorization_header: this.config.webhookSecret 
+          ? `Bearer ${this.config.webhookSecret}` 
+          : undefined,
+      },
+      options: {
+        enable_on_registration: true,
+        decode_clarity_values: true,
       },
     };
 
@@ -155,12 +176,13 @@ export class MultboxChainhooks {
    */
   async listHooks() {
     try {
-      const hooks = await this.client.getChainhooks();
+      const response = await this.client.getChainhooks();
+      const hooks = response.results;
       console.log(`📋 Found ${hooks.length} registered hook(s):\n`);
       hooks.forEach((hook, index) => {
-        console.log(`${index + 1}. ${hook.name} (${hook.uuid})`);
-        console.log(`   Network: ${hook.network}`);
-        console.log(`   Status: ${hook.status || 'active'}\n`);
+        console.log(`${index + 1}. ${hook.definition.name} (${hook.uuid})`);
+        console.log(`   Network: ${hook.definition.network}`);
+        console.log(`   Status: ${hook.status.status}\n`);
       });
       return hooks;
     } catch (error) {
@@ -174,11 +196,7 @@ export class MultboxChainhooks {
    */
   async getHook(uuid: string) {
     try {
-      const hooks = await this.client.getChainhooks();
-      const hook = hooks.find(h => h.uuid === uuid);
-      if (!hook) {
-        throw new Error(`Hook with UUID ${uuid} not found`);
-      }
+      const hook = await this.client.getChainhook(uuid);
       return hook;
     } catch (error) {
       console.error('❌ Error getting hook:', error);
@@ -204,9 +222,10 @@ export class MultboxChainhooks {
    */
   async deleteAllHooks() {
     try {
-      const hooks = await this.client.getChainhooks();
-      const multboxHooks = hooks.filter(h => 
-        h.name.includes('multbox') && h.network === this.config.network
+      const response = await this.client.getChainhooks();
+      const multboxHooks = response.results.filter(h => 
+        h.definition.name.includes('multbox') && 
+        h.definition.network === (this.config.network === 'devnet' ? 'testnet' : this.config.network)
       );
 
       if (multboxHooks.length === 0) {
