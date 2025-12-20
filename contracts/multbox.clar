@@ -184,7 +184,7 @@
 (define-private (approve-transaction-internal (tx-id uint) (approver principal))
     (let (
         (tx-opt (map-get? transactions tx-id))
-        (approval-key (concat (unwrap-panic (to-string-ascii tx-id)) (unwrap-panic (principal-to-string approver))))
+        (approval-key (concat (unwrap-panic (to-consensus-buff tx-id)) (unwrap-panic (principal-to-buff approver))))
         (already-approved (default-to false (map-get? transaction-approvals approval-key)))
     )
         (asserts! tx-opt (err u1007)) ;; Transaction does not exist
