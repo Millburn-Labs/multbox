@@ -22,8 +22,7 @@ export class MultboxChainhooks {
   constructor(config: ChainhookConfig) {
     const baseUrl = 
       config.network === 'mainnet' ? CHAINHOOKS_BASE_URL.mainnet :
-      config.network === 'testnet' ? CHAINHOOKS_BASE_URL.testnet :
-      CHAINHOOKS_BASE_URL.devnet;
+      CHAINHOOKS_BASE_URL.testnet; // Use testnet for devnet as well
 
     this.client = new ChainhooksClient({
       baseUrl,
@@ -38,9 +37,10 @@ export class MultboxChainhooks {
    */
   async registerProposalHook() {
     const hook = {
+      version: 1,
       name: `multbox-proposal-hook-${this.config.network}`,
       chain: 'stacks' as const,
-      network: this.config.network,
+      network: this.config.network === 'devnet' ? 'testnet' : this.config.network,
       filters: {
         scope: 'contract_call' as const,
         contract_identifier: `${this.config.contractAddress}.multbox`,
@@ -71,9 +71,10 @@ export class MultboxChainhooks {
    */
   async registerApprovalHook() {
     const hook = {
+      version: 1,
       name: `multbox-approval-hook-${this.config.network}`,
       chain: 'stacks' as const,
-      network: this.config.network,
+      network: this.config.network === 'devnet' ? 'testnet' : this.config.network,
       filters: {
         scope: 'contract_call' as const,
         contract_identifier: `${this.config.contractAddress}.multbox`,
@@ -104,9 +105,10 @@ export class MultboxChainhooks {
    */
   async registerExecutionHook() {
     const hook = {
+      version: 1,
       name: `multbox-execution-hook-${this.config.network}`,
       chain: 'stacks' as const,
-      network: this.config.network,
+      network: this.config.network === 'devnet' ? 'testnet' : this.config.network,
       filters: {
         scope: 'contract_call' as const,
         contract_identifier: `${this.config.contractAddress}.multbox`,
@@ -153,7 +155,7 @@ export class MultboxChainhooks {
    */
   async listHooks() {
     try {
-      const hooks = await this.client.listChainhooks();
+      const hooks = await this.client.getChainhooks();
       console.log(`📋 Found ${hooks.length} registered hook(s):\n`);
       hooks.forEach((hook, index) => {
         console.log(`${index + 1}. ${hook.name} (${hook.uuid})`);
@@ -172,7 +174,7 @@ export class MultboxChainhooks {
    */
   async getHook(uuid: string) {
     try {
-      const hooks = await this.client.listChainhooks();
+      const hooks = await this.client.getChainhooks();
       const hook = hooks.find(h => h.uuid === uuid);
       if (!hook) {
         throw new Error(`Hook with UUID ${uuid} not found`);
@@ -202,7 +204,7 @@ export class MultboxChainhooks {
    */
   async deleteAllHooks() {
     try {
-      const hooks = await this.client.listChainhooks();
+      const hooks = await this.client.getChainhooks();
       const multboxHooks = hooks.filter(h => 
         h.name.includes('multbox') && h.network === this.config.network
       );
