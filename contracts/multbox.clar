@@ -6,14 +6,26 @@
 (define-constant BOARD_SIZE u20)
 (define-constant MAJORITY_THRESHOLD u11)
 
+;; SIP-010 Fungible Token trait
+(define-trait SIP010Trait
+    ((transfer (uint principal principal (optional (buff 34))) (response bool uint))
+     (get-name () (response (string-ascii 32) uint))
+     (get-symbol () (response (string-ascii 32) uint))
+     (get-decimals () (response uint uint))
+     (get-balance (principal) (response uint uint))
+     (get-total-supply () (response uint uint))
+     (get-token-uri () (response (optional (string-utf8 256)) uint))
+))
+
 ;; Data maps
 (define-map board-members principal bool)
-(define-map transaction-approvals (uint, principal) bool)
+;; Nested map: transaction-id -> (member -> approved)
+(define-map transaction-approvals-by-tx uint (map principal bool))
 (define-map transactions uint {
     proposer: principal,
     recipient: principal,
     amount: uint,
-    token-contract: (optional (trait-reference <SIP010Trait>)),
+    token-contract: (optional principal),
     executed: bool,
     approval-count: uint
 })
@@ -42,7 +54,12 @@
 
 ;; Get approval status for a specific transaction and member
 (define-read-only (has-approved (tx-id uint) (member principal))
-    (default-to false (map-get? transaction-approvals (tuple (tx-id tx-id) (member member))))
+    (let ((approvals-map (map-get? transaction-approvals-by-tx tx-id)))
+        (match approvals-map
+            approvals (default-to false (map-get? approvals member))
+            false
+        )
+    )
 )
 
 ;; Get the number of approvals for a transaction
@@ -116,7 +133,7 @@
 (define-public (propose-transaction 
     (recipient principal)
     (amount uint)
-    (token-contract (optional (trait-reference <SIP010Trait>)))
+    (token-contract (optional principal))
 )
     (let (
         (proposer tx-sender)
@@ -136,6 +153,9 @@
             executed: false,
             approval-count: u0
         })
+        
+        ;; Initialize approvals map for this transaction
+        (map-insert transaction-approvals-by-tx tx-id (map))
         
         ;; Increment transaction ID
         (var-set next-transaction-id (+ tx-id u1))
@@ -165,9 +185,14 @@
 (define-private (approve-transaction-internal (tx-id uint) (approver principal))
     (let (
         (tx-opt (map-get? transactions tx-id))
-        (already-approved (default-to false (map-get? transaction-approvals (tuple (tx-id tx-id) (member approver)))))
+        (approvals-map-opt (map-get? transaction-approvals-by-tx tx-id))
+        (already-approved (match approvals-map-opt
+            approvals (default-to false (map-get? approvals approver))
+            false
+        ))
     )
         (asserts! tx-opt (err u1007)) ;; Transaction does not exist
+        (asserts! approvals-map-opt (err u1007)) ;; Approvals map should exist
         (asserts! (not already-approved) (err u1008)) ;; Already approved
         
         (match tx-opt
@@ -177,21 +202,27 @@
             )
                 (asserts! (not executed) (err u1009)) ;; Transaction already executed
                 
-                ;; Record approval
-                (map-insert transaction-approvals (tuple (tx-id tx-id) (member approver)) true)
-                
-                    ;; Increment approval count
-                    (let ((new-count (+ (get approval-count tx) u1)))
-                        (map-set transactions tx-id {
-                            proposer: (get proposer tx),
-                            recipient: (get recipient tx),
-                            amount: (get amount tx),
-                            token-contract: (get token-contract tx),
-                            executed: false,
-                            approval-count: new-count
-                        })
-                        (ok true)
+                ;; Record approval in the nested map
+                (match approvals-map-opt
+                    approvals
+                    (begin
+                        (map-insert approvals approver true)
+                        (map-set transaction-approvals-by-tx tx-id approvals)
                     )
+                )
+                
+                ;; Increment approval count
+                (let ((new-count (+ (get approval-count tx) u1)))
+                    (map-set transactions tx-id {
+                        proposer: (get proposer tx),
+                        recipient: (get recipient tx),
+                        amount: (get amount tx),
+                        token-contract: (get token-contract tx),
+                        executed: false,
+                        approval-count: new-count
+                    })
+                    (ok true)
+                )
             )
             (err u1007)
         )
@@ -231,9 +262,9 @@
                 
                 ;; Execute the transfer
                 (match token-contract
-                    (some contract)
-                    ;; Transfer fungible tokens
-                    (try! (as-contract (contract-transfer? contract amount tx-sender recipient)))
+                    (some contract-principal)
+                    ;; Transfer fungible tokens using the contract principal
+                    (try! (as-contract (contract-call? (contract-of contract-principal) transfer amount tx-sender recipient none)))
                     ;; Transfer STX
                     (try! (as-contract (stx-transfer? amount tx-sender recipient)))
                 )
