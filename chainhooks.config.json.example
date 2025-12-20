@@ -1,0 +1,8 @@
+{
+  "apiKey": "your-chainhooks-api-key-here",
+  "network": "testnet",
+  "webhookUrl": "http://localhost:3000/api/hooks",
+  "webhookSecret": "optional-secret-for-webhook-auth",
+  "contractAddress": "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM"
+}
+

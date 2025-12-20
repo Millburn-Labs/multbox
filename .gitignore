@@ -10,3 +10,10 @@ coverage
 *.info
 costs-reports.json
 node_modules
+
+# Chainhooks config (contains API keys)
+chainhooks.config.json
+
+# Environment files
+.env
+.env.local
