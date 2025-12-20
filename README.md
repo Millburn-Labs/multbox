@@ -116,24 +116,100 @@ npm run test:report
 
 ## Chainhooks Integration
 
-This project includes `@hirosystems/chainhooks-client` for monitoring contract events.
+This project includes full integration with `@hirosystems/chainhooks-client` for monitoring contract events in real-time.
 
-See `chainhooks.example.ts` for examples of:
-- Registering hooks for transaction proposals
-- Registering hooks for transaction executions
-- Listing and managing chainhooks
+### Quick Start
 
-### Example Chainhook Setup
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+2. **Create configuration file:**
+   ```bash
+   cp chainhooks.config.json.example chainhooks.config.json
+   # Edit chainhooks.config.json with your API key and contract address
+   ```
+
+   Or set environment variables:
+   ```bash
+   export CHAINHOOKS_API_KEY="your-api-key"
+   export CONTRACT_ADDRESS="ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM"
+   export CHAINHOOKS_NETWORK="testnet"
+   export WEBHOOK_URL="http://localhost:3000/api/hooks"
+   ```
+
+3. **Register chainhooks:**
+   ```bash
+   npm run chainhooks:register
+   ```
+
+### Available Commands
+
+- `npm run chainhooks:register` - Register all hooks (proposal, approval, execution)
+- `npm run chainhooks:register-proposal` - Register proposal hook only
+- `npm run chainhooks:register-approval` - Register approval hook only
+- `npm run chainhooks:register-execution` - Register execution hook only
+- `npm run chainhooks:list` - List all registered hooks
+- `npm run chainhooks:delete <uuid>` - Delete a specific hook
+- `npm run chainhooks:delete-all` - Delete all multbox hooks
+
+### Webhook Server
+
+A sample webhook server is included to receive chainhook events:
+
+```bash
+npm run webhook:server
+```
+
+This starts a server on `http://localhost:3000` that receives:
+- `POST /api/hooks/proposal` - Transaction proposals
+- `POST /api/hooks/approval` - Transaction approvals  
+- `POST /api/hooks/execution` - Transaction executions
+
+### Programmatic Usage
 
 ```typescript
-import { registerProposalHook, registerExecutionHook } from './chainhooks.example';
+import { MultboxChainhooks } from './src/chainhooks.js';
 
-const contractAddress = 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM';
+const chainhooks = new MultboxChainhooks({
+  apiKey: 'your-api-key',
+  network: 'testnet',
+  webhookUrl: 'http://localhost:3000/api/hooks',
+  contractAddress: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
+});
 
-// Register hooks
-await registerProposalHook(contractAddress);
-await registerExecutionHook(contractAddress);
+// Register all hooks
+await chainhooks.registerAllHooks();
+
+// Or register individually
+await chainhooks.registerProposalHook();
+await chainhooks.registerApprovalHook();
+await chainhooks.registerExecutionHook();
+
+// List hooks
+await chainhooks.listHooks();
+
+// Delete hooks
+await chainhooks.deleteHook('hook-uuid');
+await chainhooks.deleteAllHooks();
 ```
+
+### Configuration
+
+Configuration can be provided via:
+1. Environment variables (highest priority)
+2. `chainhooks.config.json` file
+3. Programmatic configuration
+
+Required:
+- `CHAINHOOKS_API_KEY` - Your Chainhooks API key
+- `CONTRACT_ADDRESS` - Your deployed contract address
+
+Optional:
+- `CHAINHOOKS_NETWORK` - Network: `testnet`, `mainnet`, or `devnet` (default: `testnet`)
+- `WEBHOOK_URL` - Your webhook endpoint URL (default: `http://localhost:3000/api/hooks`)
+- `WEBHOOK_SECRET` - Optional secret for webhook authentication
 
 ## Development
 
