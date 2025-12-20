@@ -19,9 +19,8 @@
 
 ;; Data maps
 (define-map board-members principal bool)
-;; Approval tracking: using buff for composite key
-;; Format: tx-id (32 bytes) + principal (20 bytes) = 52 bytes
-(define-map transaction-approvals buff bool)
+;; Nested map for approvals: transaction-id -> (member -> approved)
+(define-map transaction-approvals-by-tx uint (map principal bool))
 (define-map transactions uint {
     proposer: principal,
     recipient: principal,
@@ -55,8 +54,11 @@
 
 ;; Get approval status for a specific transaction and member
 (define-read-only (has-approved (tx-id uint) (member principal))
-    (let ((approval-key (concat (unwrap-panic (to-consensus-buff tx-id)) (unwrap-panic (principal-to-buff member)))))
-        (default-to false (map-get? transaction-approvals approval-key))
+    (let ((approvals-map-opt (map-get? transaction-approvals-by-tx tx-id)))
+        (match approvals-map-opt
+            approvals (default-to false (map-get? approvals member))
+            false
+        )
     )
 )
 
@@ -184,8 +186,11 @@
 (define-private (approve-transaction-internal (tx-id uint) (approver principal))
     (let (
         (tx-opt (map-get? transactions tx-id))
-        (approval-key (concat (unwrap-panic (to-consensus-buff tx-id)) (unwrap-panic (principal-to-buff approver))))
-        (already-approved (default-to false (map-get? transaction-approvals approval-key)))
+        (approvals-map-opt (map-get? transaction-approvals-by-tx tx-id))
+        (already-approved (match approvals-map-opt
+            approvals (default-to false (map-get? approvals approver))
+            false
+        ))
     )
         (asserts! tx-opt (err u1007)) ;; Transaction does not exist
         (asserts! (not already-approved) (err u1008)) ;; Already approved
@@ -197,8 +202,27 @@
             )
                 (asserts! (not executed) (err u1009)) ;; Transaction already executed
                 
-                ;; Record approval
-                (map-insert transaction-approvals approval-key true)
+                ;; Record approval in nested map
+                (match approvals-map-opt
+                    approvals
+                    (begin
+                        (map-insert approvals approver true)
+                        (map-set transaction-approvals-by-tx tx-id approvals)
+                    )
+                    ;; Create nested map on first approval by inserting a dummy then replacing
+                    (begin
+                        ;; Insert dummy value to create the nested map structure
+                        (map-insert transaction-approvals-by-tx tx-id (map))
+                        ;; Now get it and insert the real approval
+                        (match (map-get? transaction-approvals-by-tx tx-id)
+                            new-approvals
+                            (begin
+                                (map-insert new-approvals approver true)
+                                (map-set transaction-approvals-by-tx tx-id new-approvals)
+                            )
+                        )
+                    )
+                )
                 
                 ;; Increment approval count
                 (let ((new-count (+ (get approval-count tx) u1)))
