@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import { ClarityValue, uintCV, someCV, noneCV, principalCV, standardPrincipalCV, listCV } from "@stacks/transactions";
+import { uintCV, noneCV, standardPrincipalCV, listCV, boolCV } from "@stacks/transactions";
 
 const accounts = simnet.getAccounts();
 const deployer = accounts.get("deployer")!;
