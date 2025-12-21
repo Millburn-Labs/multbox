@@ -274,8 +274,8 @@
                     ;; Token transfers would require the contract identifier string
                     (err u1012) ;; Token transfers not yet supported - use STX instead
                     ;; Transfer STX - contract must hold the STX balance
-                    ;; In Clarity, stx-transfer? from a contract uses the contract as sender
-                    (stx-transfer? amount tx-sender recipient)
+                    ;; Use as-contract to transfer from contract's balance
+                    (as-contract (stx-transfer? amount tx-sender recipient))
                 ))
                 
                 (ok true)
