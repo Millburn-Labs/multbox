@@ -404,7 +404,7 @@ describe("BoardMultiSig Contract", () => {
         [uintCV(0)],
         deployer
       );
-      expect(executeResult1.result).toBeOk(ClarityValue.from(true));
+      expect(executeResult1.result).toBeOk(boolCV(true));
 
       // Try to execute again (should fail)
       const executeResult2 = simnet.callPublicFn(
