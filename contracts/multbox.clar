@@ -13,7 +13,6 @@
 (define-constant PROPOSAL_EXPIRY_DAYS u30)
 (define-constant BLOCKS_PER_DAY u144)
 
-;; Transaction types
 (define-constant TX_TYPE_TRANSFER u1)
 (define-constant TX_TYPE_BATCH_TRANSFER u2)
 (define-constant TX_TYPE_ADD_MEMBER u3)
@@ -22,7 +21,6 @@
 (define-constant TX_TYPE_PAUSE u6)
 (define-constant TX_TYPE_UNPAUSE u7)
 
-;; Error codes
 (define-constant ERR_ALREADY_INITIALIZED u1001)
 (define-constant ERR_WRONG_BOARD_SIZE u1002)
 (define-constant ERR_ADD_MEMBERS_FAILED u1003)
@@ -62,11 +60,9 @@
 ;; SECTION 3: STORAGE
 ;; ============================================================================
 
-;; Board management
 (define-map board-members principal bool)
 (define-data-var board-member-count uint u0)
 
-;; Transaction storage
 (define-map transactions uint {
     proposer: principal,
     tx-type: uint,
@@ -88,16 +84,13 @@
     threshold-value: (optional uint)
 })
 
-;; Approval tracking
 (define-map transaction-approvers uint (list 20 principal))
 
-;; Configuration
 (define-data-var next-transaction-id uint u0)
 (define-data-var initialized bool false)
 (define-data-var paused bool false)
 (define-data-var approval-threshold uint DEFAULT_MAJORITY_THRESHOLD)
 
-;; Statistics
 (define-data-var total-transactions uint u0)
 (define-data-var executed-transactions uint u0)
 (define-data-var cancelled-transactions uint u0)
@@ -107,7 +100,6 @@
 ;; SECTION 4: READ-ONLY FUNCTIONS
 ;; ============================================================================
 
-;; Board management
 (define-read-only (is-board-member (member principal))
     (map-get? board-members member)
 )
@@ -116,7 +108,6 @@
     (var-get board-member-count)
 )
 
-;; Transactions
 (define-read-only (get-transaction (tx-id uint))
     (map-get? transactions tx-id)
 )
@@ -152,7 +143,6 @@
     )
 )
 
-;; Statistics
 (define-read-only (get-total-transactions)
     (var-get total-transactions)
 )
