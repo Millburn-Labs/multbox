@@ -132,14 +132,10 @@
     (map-get? transaction-approvers tx-id)
 )
 
-(define-read-only (is-transaction-expired (tx-id uint))
+(define-read-only (get-transaction-expires-at (tx-id uint))
     (match (map-get? transactions tx-id)
-        tx
-        (let ((expires-at (get expires-at tx))
-              (current-block (block-height)))
-            (>= current-block expires-at)
-        )
-        false
+        tx (ok (get expires-at tx))
+        (ok u0)
     )
 )
 
@@ -832,14 +828,14 @@
     (match (get batch-transfers tx)
         transfers
         (begin
-            (try! (execute-batch-transfers transfers u0))
+            (try! (execute-batch-transfers-internal transfers u0))
             (ok true)
         )
         (err ERR_TX_NOT_FOUND)
     )
 )
 
-(define-private (execute-batch-transfers (transfers (list 10 {recipient: principal, amount: uint, token-contract: (optional principal)})) (index uint))
+(define-private (execute-batch-transfers-internal (transfers (list 10 {recipient: principal, amount: uint, token-contract: (optional principal)})) (index uint))
     (if (>= index (len transfers))
         (ok true)
         (let ((transfer (unwrap-panic (element-at transfers index))))
@@ -849,7 +845,7 @@
                     (get amount transfer)
                     (get token-contract transfer)
                 ))
-                (try! (execute-batch-transfers transfers (+ index u1)))
+                (try! (execute-batch-transfers-internal transfers (+ index u1)))
                 (ok true)
             )
         )
