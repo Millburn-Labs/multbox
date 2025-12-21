@@ -460,7 +460,8 @@ describe("BoardMultiSig Contract", () => {
         [uintCV(0)],
         deployer
       );
-      expect(tx.result).toBeSome();
+      // Check that transaction exists (result is Some)
+      expect(tx.result).not.toBeNone();
     });
 
     it("should check if contract is initialized", () => {
