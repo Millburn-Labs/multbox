@@ -186,7 +186,7 @@ describe("BoardMultiSig Contract", () => {
         [uintCV(0), standardPrincipalCV(boardMembers[0])],
         deployer
       );
-      expect(hasApproved.result).toBeSome(boolCV(true));
+      expect(hasApproved.result).toBe(true);
     });
   });
 
