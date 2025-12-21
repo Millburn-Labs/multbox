@@ -308,7 +308,9 @@ describe("BoardMultiSig Contract", () => {
       expect(proposeResult.result).toBeOk(uintCV(0));
 
       // Get 10 more approvals (total 11, which is majority)
-      for (let i = 1; i <= 10; i++) {
+      // Start from index 2 to avoid potential duplicates with proposer (index 0)
+      // and ensure we have enough unique members
+      for (let i = 2; i <= 11; i++) {
         const approveResult = simnet.callPublicFn(
           "multbox",
           "approve-transaction",
@@ -387,8 +389,8 @@ describe("BoardMultiSig Contract", () => {
         boardMembers[0]
       );
 
-      // Get 10 more approvals
-      for (let i = 1; i <= 10; i++) {
+      // Get 10 more approvals (start from index 2 to avoid duplicates)
+      for (let i = 2; i <= 11; i++) {
         simnet.callPublicFn(
           "multbox",
           "approve-transaction",
