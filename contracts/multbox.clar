@@ -200,19 +200,6 @@
 ;; SECTION 6: INITIALIZATION
 ;; ============================================================================
 
-(define-public (initialize (members (list 20 principal)))
-    (let (
-        (current-init (var-get initialized))
-        (current-count (var-get board-member-count))
-    )
-        (asserts! (not current-init) (err ERR_ALREADY_INITIALIZED))
-        (asserts! (is-eq (len members) BOARD_SIZE) (err ERR_WRONG_BOARD_SIZE))
-        (try! (add-board-members members))
-        (var-set initialized true)
-        (ok true)
-    )
-)
-
 (define-private (add-board-members (members (list 20 principal)))
     (match (as-max-len? members u20)
         members-list
@@ -241,6 +228,19 @@
             (ok true)
         )
         (err ERR_ADD_MEMBERS_FAILED)
+    )
+)
+
+(define-public (initialize (members (list 20 principal)))
+    (let (
+        (current-init (var-get initialized))
+        (current-count (var-get board-member-count))
+    )
+        (asserts! (not current-init) (err ERR_ALREADY_INITIALIZED))
+        (asserts! (is-eq (len members) BOARD_SIZE) (err ERR_WRONG_BOARD_SIZE))
+        (try! (add-board-members members))
+        (var-set initialized true)
+        (ok true)
     )
 )
 
