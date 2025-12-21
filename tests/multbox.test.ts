@@ -26,7 +26,7 @@ describe("BoardMultiSig Contract", () => {
         [listCV(members)],
         deployer
       );
-      expect(result.result).toBeOk(ClarityValue.from(true));
+      expect(result.result).toBeOk(boolCV(true));
     });
 
     it("should fail if initialized twice", () => {
@@ -108,7 +108,7 @@ describe("BoardMultiSig Contract", () => {
         [listCV(members)],
         deployer
       );
-      expect(initResult.result).toBeOk(ClarityValue.from(true));
+      expect(initResult.result).toBeOk(boolCV(true));
     });
 
     it("should allow board member to propose transaction", () => {
@@ -200,7 +200,7 @@ describe("BoardMultiSig Contract", () => {
         [listCV(members)],
         deployer
       );
-      expect(initResult.result).toBeOk(ClarityValue.from(true));
+      expect(initResult.result).toBeOk(boolCV(true));
 
       // Create a transaction for testing approvals
       const recipient = standardPrincipalCV(boardMembers[1]);
@@ -223,7 +223,7 @@ describe("BoardMultiSig Contract", () => {
         boardMembers[1]
       );
 
-      expect(result.result).toBeOk(ClarityValue.from(true));
+      expect(result.result).toBeOk(boolCV(true));
 
       const approvalCount = simnet.callReadOnlyFn(
         "multbox",
@@ -288,7 +288,7 @@ describe("BoardMultiSig Contract", () => {
         [listCV(members)],
         deployer
       );
-      expect(initResult.result).toBeOk(ClarityValue.from(true));
+      expect(initResult.result).toBeOk(boolCV(true));
     });
 
     it("should execute transaction with majority approval (11/20)", () => {
@@ -437,7 +437,7 @@ describe("BoardMultiSig Contract", () => {
         [listCV(members)],
         deployer
       );
-      expect(initResult.result).toBeOk(ClarityValue.from(true));
+      expect(initResult.result).toBeOk(boolCV(true));
     });
 
     it("should return transaction details", () => {
