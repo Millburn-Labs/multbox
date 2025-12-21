@@ -518,7 +518,7 @@
             
             (var-set next-transaction-id (+ tx-id u1))
             (var-set total-transactions (+ (var-get total-transactions) u1))
-            (try! (approve-transaction-internal tx-id proposer))
+            (try! (approve-transaction-internal tx-id proposer current-block))
             (print {event: "pause-proposed", tx-id: tx-id, proposer: proposer})
             (ok tx-id)
         )
@@ -560,7 +560,7 @@
             
             (var-set next-transaction-id (+ tx-id u1))
             (var-set total-transactions (+ (var-get total-transactions) u1))
-            (try! (approve-transaction-internal tx-id proposer))
+            (try! (approve-transaction-internal tx-id proposer current-block))
             (print {event: "unpause-proposed", tx-id: tx-id, proposer: proposer})
             (ok tx-id)
         )
