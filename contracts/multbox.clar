@@ -747,7 +747,7 @@
                     (cancelled (get cancelled tx))
                     (approval-count (get approval-count tx))
                     (expires-at (get expires-at tx))
-                    (current-block (get-current-block))
+                    (current-block (block-height))
                     (tx-type (get tx-type tx))
                 )
                     (asserts! (not executed) (err ERR_TX_EXECUTED))
