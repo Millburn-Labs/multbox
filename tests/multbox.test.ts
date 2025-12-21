@@ -75,7 +75,7 @@ describe("BoardMultiSig Contract", () => {
         [standardPrincipalCV(boardMembers[0])],
         deployer
       );
-      expect(isMember.result).toBeSome(ClarityValue.from(true));
+      expect(isMember.result).toBeSome(boolCV(true));
     });
 
     it("should return correct board member count", () => {
@@ -186,7 +186,7 @@ describe("BoardMultiSig Contract", () => {
         [uintCV(0), standardPrincipalCV(boardMembers[0])],
         deployer
       );
-      expect(hasApproved.result).toBeSome(ClarityValue.from(true));
+      expect(hasApproved.result).toBeSome(boolCV(true));
     });
   });
 
