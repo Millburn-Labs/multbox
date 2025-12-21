@@ -946,21 +946,18 @@
 )
 
 ;; Execute a single transfer
-(define-private (execute-transfer (tx {proposer: principal, tx-type: uint, recipient: principal, amount: uint, token-contract: (optional principal), token-trait: (optional <SIP010Trait>), executed: bool, cancelled: bool, approval-count: uint, created-at: uint, expires-at: uint, metadata: (optional (string-utf8 500)), batch-transfers: (optional (list 10 {recipient: principal, amount: uint, token-contract: (optional principal), token-trait: (optional <SIP010Trait>)}))}, new-member: (optional principal), threshold-value: (optional uint)}))
+(define-private (execute-transfer (tx {proposer: principal, tx-type: uint, recipient: principal, amount: uint, token-contract: (optional principal), executed: bool, cancelled: bool, approval-count: uint, created-at: uint, expires-at: uint, metadata: (optional (string-utf8 500)), batch-transfers: (optional (list 10 {recipient: principal, amount: uint, token-contract: (optional principal)})), new-member: (optional principal), threshold-value: (optional uint)}))
     (let (
         (recipient (get recipient tx))
         (amount (get amount tx))
         (token-contract (get token-contract tx))
-        (token-trait (get token-trait tx))
     )
         (match token-contract contract-principal
-            ;; Token transfer using SIP-010 trait
-            (match token-trait trait-ref
-                (match (contract-call? trait-ref transfer amount tx-sender recipient none)
-                    (ok result) (ok true)
-                    (err error-code) (err ERR_TOKEN_TRANSFER_FAILED)
-                )
-                (err ERR_TOKEN_TRANSFER_FAILED)
+            ;; Token transfer using SIP-010 - call transfer function directly
+            ;; Note: The token contract must implement SIP-010 trait
+            (match (contract-call? contract-principal transfer amount tx-sender recipient none)
+                (ok result) (ok true)
+                (err error-code) (err ERR_TOKEN_TRANSFER_FAILED)
             )
             ;; STX transfer
             (stx-transfer? amount tx-sender recipient)
