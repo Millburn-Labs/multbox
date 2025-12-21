@@ -996,15 +996,14 @@
 )
 
 ;; Execute a single transfer from batch
-(define-private (execute-single-transfer (recipient principal) (amount uint) (token-contract (optional principal)) (token-trait (optional <SIP010Trait>)))
+(define-private (execute-single-transfer (recipient principal) (amount uint) (token-contract (optional principal)))
     (match token-contract contract-principal
-        (match token-trait trait-ref
-            (match (contract-call? trait-ref transfer amount tx-sender recipient none)
-                (ok result) (ok true)
-                (err error-code) (err ERR_TOKEN_TRANSFER_FAILED)
-            )
-            (err ERR_TOKEN_TRANSFER_FAILED)
+        ;; Token transfer using SIP-010 - call transfer function directly
+        (match (contract-call? contract-principal transfer amount tx-sender recipient none)
+            (ok result) (ok true)
+            (err error-code) (err ERR_TOKEN_TRANSFER_FAILED)
         )
+        ;; STX transfer
         (stx-transfer? amount tx-sender recipient)
     )
 )
