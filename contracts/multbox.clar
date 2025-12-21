@@ -777,7 +777,16 @@
                             threshold-value: (get threshold-value tx)
                         })
                         
-                        (try! (execute-transaction-by-type tx))
+                        (try! (match tx-type
+                            TX_TYPE_TRANSFER (try! (execute-transfer tx))
+                            TX_TYPE_BATCH_TRANSFER (try! (execute-batch-transfer tx))
+                            TX_TYPE_ADD_MEMBER (try! (execute-add-member tx))
+                            TX_TYPE_REMOVE_MEMBER (try! (execute-remove-member tx))
+                            TX_TYPE_UPDATE_THRESHOLD (try! (execute-update-threshold tx))
+                            TX_TYPE_PAUSE (try! (execute-pause))
+                            TX_TYPE_UNPAUSE (try! (execute-unpause))
+                            (err ERR_INVALID_PROPOSAL_TYPE)
+                        ))
                         (var-set executed-transactions (+ (var-get executed-transactions) u1))
                         (print {event: "transaction-executed", tx-id: tx-id, tx-type: tx-type})
                         (ok true)
