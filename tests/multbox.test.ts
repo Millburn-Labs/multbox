@@ -471,7 +471,7 @@ describe("BoardMultiSig Contract", () => {
         [],
         deployer
       );
-      expect(initialized.result).toBeSome(boolCV(true));
+      expect(initialized.result).toBe(true);
     });
   });
 });
