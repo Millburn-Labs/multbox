@@ -966,7 +966,7 @@
 )
 
 ;; Execute batch transfer
-(define-private (execute-batch-transfer (tx {proposer: principal, tx-type: uint, recipient: principal, amount: uint, token-contract: (optional principal), token-trait: (optional <SIP010Trait>), executed: bool, cancelled: bool, approval-count: uint, created-at: uint, expires-at: uint, metadata: (optional (string-utf8 500)), batch-transfers: (optional (list 10 {recipient: principal, amount: uint, token-contract: (optional principal), token-trait: (optional <SIP010Trait>)}))}, new-member: (optional principal), threshold-value: (optional uint)}))
+(define-private (execute-batch-transfer (tx {proposer: principal, tx-type: uint, recipient: principal, amount: uint, token-contract: (optional principal), executed: bool, cancelled: bool, approval-count: uint, created-at: uint, expires-at: uint, metadata: (optional (string-utf8 500)), batch-transfers: (optional (list 10 {recipient: principal, amount: uint, token-contract: (optional principal)})), new-member: (optional principal), threshold-value: (optional uint)}))
     (match (get batch-transfers tx)
         transfers
         (begin
