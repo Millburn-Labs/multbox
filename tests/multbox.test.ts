@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import { ClarityValue, uintCV, someCV, noneCV, principalCV, standardPrincipalCV } from "@stacks/transactions";
+import { ClarityValue, uintCV, someCV, noneCV, principalCV, standardPrincipalCV, listCV } from "@stacks/transactions";
 
 const accounts = simnet.getAccounts();
 const deployer = accounts.get("deployer")!;
@@ -17,25 +17,13 @@ for (let i = 1; i <= 20; i++) {
 }
 
 describe("BoardMultiSig Contract", () => {
-  beforeEach(() => {
-    // Initialize contract with 20 board members before each test
-    const members = boardMembers.map(m => standardPrincipalCV(m));
-    const initResult = simnet.callPublicFn(
-      "multbox",
-      "initialize",
-      [members],
-      deployer
-    );
-    expect(initResult.result).toBeOk(ClarityValue.from(true));
-  });
-
   describe("Initialization", () => {
     it("should initialize with exactly 20 board members", () => {
       const members = boardMembers.map(m => standardPrincipalCV(m));
       const result = simnet.callPublicFn(
         "multbox",
         "initialize",
-        [members],
+        [listCV(members)],
         deployer
       );
       expect(result.result).toBeOk(ClarityValue.from(true));
@@ -46,7 +34,7 @@ describe("BoardMultiSig Contract", () => {
       const result1 = simnet.callPublicFn(
         "multbox",
         "initialize",
-        [members],
+        [listCV(members)],
         deployer
       );
       expect(result1.result).toBeOk(ClarityValue.from(true));
@@ -54,7 +42,7 @@ describe("BoardMultiSig Contract", () => {
       const result2 = simnet.callPublicFn(
         "multbox",
         "initialize",
-        [members],
+        [listCV(members)],
         deployer
       );
       expect(result2.result).toBeErr(uintCV(1001));
@@ -65,13 +53,22 @@ describe("BoardMultiSig Contract", () => {
       const result = simnet.callPublicFn(
         "multbox",
         "initialize",
-        [wrongMembers],
+        [listCV(wrongMembers)],
         deployer
       );
       expect(result.result).toBeErr(uintCV(1002));
     });
 
     it("should verify board members are registered", () => {
+      // Initialize first
+      const members = boardMembers.map(m => standardPrincipalCV(m));
+      simnet.callPublicFn(
+        "multbox",
+        "initialize",
+        [listCV(members)],
+        deployer
+      );
+
       const isMember = simnet.callReadOnlyFn(
         "multbox",
         "is-board-member",
@@ -82,6 +79,15 @@ describe("BoardMultiSig Contract", () => {
     });
 
     it("should return correct board member count", () => {
+      // Initialize first
+      const members = boardMembers.map(m => standardPrincipalCV(m));
+      simnet.callPublicFn(
+        "multbox",
+        "initialize",
+        [listCV(members)],
+        deployer
+      );
+
       const count = simnet.callReadOnlyFn(
         "multbox",
         "get-board-member-count",
