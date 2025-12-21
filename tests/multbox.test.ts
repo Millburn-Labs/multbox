@@ -315,7 +315,7 @@ describe("BoardMultiSig Contract", () => {
           [uintCV(0)],
           boardMembers[i]
         );
-        expect(approveResult.result).toBeOk(ClarityValue.from(true));
+        expect(approveResult.result).toBeOk(boolCV(true));
       }
 
       // Check approval count
@@ -337,7 +337,7 @@ describe("BoardMultiSig Contract", () => {
       // The execution will attempt to transfer, which may fail if no balance
       // but the important thing is that it passes the approval checks
       // In a real scenario with balance, this would succeed
-      expect(executeResult.result).toBeOk(ClarityValue.from(true));
+      expect(executeResult.result).toBeOk(boolCV(true));
     });
 
     it("should fail with insufficient approvals", () => {
