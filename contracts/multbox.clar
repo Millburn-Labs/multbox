@@ -287,7 +287,7 @@
             
             (var-set next-transaction-id (+ tx-id u1))
             (var-set total-transactions (+ (var-get total-transactions) u1))
-            (try! (approve-transaction-internal tx-id proposer))
+            (try! (approve-transaction-internal tx-id proposer current-block))
             (print {event: "transaction-proposed", tx-id: tx-id, proposer: proposer, recipient: recipient, amount: amount})
             (ok tx-id)
         )
