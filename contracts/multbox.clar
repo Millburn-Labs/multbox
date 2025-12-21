@@ -132,14 +132,10 @@
     (map-get? transaction-approvers tx-id)
 )
 
-(define-read-only (is-transaction-expired (tx-id uint))
+(define-read-only (get-transaction-expires-at (tx-id uint))
     (match (map-get? transactions tx-id)
-        tx
-        (let ((expires-at (get expires-at tx))
-              (current-block (block-height)))
-            (>= current-block expires-at)
-        )
-        false
+        tx (ok (get expires-at tx))
+        (ok u0)
     )
 )
 
@@ -196,10 +192,6 @@
     (var-get paused)
 )
 
-(define-private (get-current-block)
-    (block-height)
-)
-
 (define-private (calculate-expiry (created-at uint))
     (+ created-at (* PROPOSAL_EXPIRY_DAYS BLOCKS_PER_DAY))
 )
@@ -207,19 +199,6 @@
 ;; ============================================================================
 ;; SECTION 6: INITIALIZATION
 ;; ============================================================================
-
-(define-public (initialize (members (list 20 principal)))
-    (let (
-        (current-init (var-get initialized))
-        (current-count (var-get board-member-count))
-    )
-        (asserts! (not current-init) (err ERR_ALREADY_INITIALIZED))
-        (asserts! (is-eq (len members) BOARD_SIZE) (err ERR_WRONG_BOARD_SIZE))
-        (try! (add-board-members members))
-        (var-set initialized true)
-        (ok true)
-    )
-)
 
 (define-private (add-board-members (members (list 20 principal)))
     (match (as-max-len? members u20)
@@ -252,6 +231,19 @@
     )
 )
 
+(define-public (initialize (members (list 20 principal)))
+    (let (
+        (current-init (var-get initialized))
+        (current-count (var-get board-member-count))
+    )
+        (asserts! (not current-init) (err ERR_ALREADY_INITIALIZED))
+        (asserts! (is-eq (len members) BOARD_SIZE) (err ERR_WRONG_BOARD_SIZE))
+        (try! (add-board-members members))
+        (var-set initialized true)
+        (ok true)
+    )
+)
+
 ;; ============================================================================
 ;; SECTION 7: TRANSACTION PROPOSALS
 ;; ============================================================================
@@ -266,7 +258,7 @@
         (proposer tx-sender)
         (is-member (check-board-member proposer))
         (tx-id (var-get next-transaction-id))
-        (current-block (get-current-block))
+        (current-block (block-height))
         (expires-at (calculate-expiry current-block))
         (is-paused (check-paused))
     )
@@ -295,7 +287,7 @@
             
             (var-set next-transaction-id (+ tx-id u1))
             (var-set total-transactions (+ (var-get total-transactions) u1))
-            (try! (approve-transaction-internal tx-id proposer))
+            (try! (approve-transaction-internal tx-id proposer current-block))
             (print {event: "transaction-proposed", tx-id: tx-id, proposer: proposer, recipient: recipient, amount: amount})
             (ok tx-id)
         )
@@ -314,7 +306,7 @@
         (proposer tx-sender)
         (is-member (check-board-member proposer))
         (tx-id (var-get next-transaction-id))
-        (current-block (get-current-block))
+        (current-block (block-height))
         (expires-at (calculate-expiry current-block))
         (is-paused (check-paused))
         (transfer-count (len transfers))
@@ -345,7 +337,7 @@
             
             (var-set next-transaction-id (+ tx-id u1))
             (var-set total-transactions (+ (var-get total-transactions) u1))
-            (try! (approve-transaction-internal tx-id proposer))
+            (try! (approve-transaction-internal tx-id proposer current-block))
             (print {event: "batch-transaction-proposed", tx-id: tx-id, proposer: proposer, transfer-count: transfer-count})
             (ok tx-id)
         )
@@ -364,7 +356,7 @@
         (proposer tx-sender)
         (is-member (check-board-member proposer))
         (tx-id (var-get next-transaction-id))
-        (current-block (get-current-block))
+        (current-block (block-height))
         (expires-at (calculate-expiry current-block))
         (is-paused (check-paused))
         (already-member (check-board-member new-member))
@@ -394,7 +386,7 @@
             
             (var-set next-transaction-id (+ tx-id u1))
             (var-set total-transactions (+ (var-get total-transactions) u1))
-            (try! (approve-transaction-internal tx-id proposer))
+            (try! (approve-transaction-internal tx-id proposer current-block))
             (print {event: "add-member-proposed", tx-id: tx-id, proposer: proposer, new-member: new-member})
             (ok tx-id)
         )
@@ -409,7 +401,7 @@
         (proposer tx-sender)
         (is-member (check-board-member proposer))
         (tx-id (var-get next-transaction-id))
-        (current-block (get-current-block))
+        (current-block (block-height))
         (expires-at (calculate-expiry current-block))
         (is-paused (check-paused))
         (is-member-to-remove (check-board-member member-to-remove))
@@ -439,7 +431,7 @@
             
             (var-set next-transaction-id (+ tx-id u1))
             (var-set total-transactions (+ (var-get total-transactions) u1))
-            (try! (approve-transaction-internal tx-id proposer))
+            (try! (approve-transaction-internal tx-id proposer current-block))
             (print {event: "remove-member-proposed", tx-id: tx-id, proposer: proposer, member-to-remove: member-to-remove})
             (ok tx-id)
         )
@@ -454,7 +446,7 @@
         (proposer tx-sender)
         (is-member (check-board-member proposer))
         (tx-id (var-get next-transaction-id))
-        (current-block (get-current-block))
+        (current-block (block-height))
         (expires-at (calculate-expiry current-block))
         (is-paused (check-paused))
     )
@@ -484,7 +476,7 @@
             
             (var-set next-transaction-id (+ tx-id u1))
             (var-set total-transactions (+ (var-get total-transactions) u1))
-            (try! (approve-transaction-internal tx-id proposer))
+            (try! (approve-transaction-internal tx-id proposer current-block))
             (print {event: "update-threshold-proposed", tx-id: tx-id, proposer: proposer, new-threshold: new-threshold})
             (ok tx-id)
         )
@@ -498,7 +490,7 @@
         (proposer tx-sender)
         (is-member (check-board-member proposer))
         (tx-id (var-get next-transaction-id))
-        (current-block (get-current-block))
+        (current-block (block-height))
         (expires-at (calculate-expiry current-block))
         (is-paused (check-paused))
     )
@@ -526,7 +518,7 @@
             
             (var-set next-transaction-id (+ tx-id u1))
             (var-set total-transactions (+ (var-get total-transactions) u1))
-            (try! (approve-transaction-internal tx-id proposer))
+            (try! (approve-transaction-internal tx-id proposer current-block))
             (print {event: "pause-proposed", tx-id: tx-id, proposer: proposer})
             (ok tx-id)
         )
@@ -540,7 +532,7 @@
         (proposer tx-sender)
         (is-member (check-board-member proposer))
         (tx-id (var-get next-transaction-id))
-        (current-block (get-current-block))
+        (current-block (block-height))
         (expires-at (calculate-expiry current-block))
         (is-paused (check-paused))
     )
@@ -568,7 +560,7 @@
             
             (var-set next-transaction-id (+ tx-id u1))
             (var-set total-transactions (+ (var-get total-transactions) u1))
-            (try! (approve-transaction-internal tx-id proposer))
+            (try! (approve-transaction-internal tx-id proposer current-block))
             (print {event: "unpause-proposed", tx-id: tx-id, proposer: proposer})
             (ok tx-id)
         )
@@ -584,12 +576,13 @@
         (approver tx-sender)
         (is-member (check-board-member approver))
         (is-paused (check-paused))
+        (current-block (block-height))
     )
         (begin
             (asserts! (check-initialized) (err ERR_NOT_INITIALIZED))
             (asserts! (not is-paused) (err ERR_CONTRACT_PAUSED))
             (asserts! is-member (err ERR_NOT_BOARD_MEMBER))
-            (try! (approve-transaction-internal tx-id approver))
+            (try! (approve-transaction-internal tx-id approver current-block))
             (print {event: "transaction-approved", tx-id: tx-id, approver: approver})
             (ok true)
         )
@@ -613,7 +606,7 @@
     )
 )
 
-(define-private (approve-transaction-internal (tx-id uint) (approver principal))
+(define-private (approve-transaction-internal (tx-id uint) (approver principal) (current-block uint))
     (let (
         (tx-opt (map-get? transactions tx-id))
         (approvers-opt (map-get? transaction-approvers tx-id))
@@ -631,7 +624,6 @@
                 (executed (get executed tx))
                 (cancelled (get cancelled tx))
                 (expires-at (get expires-at tx))
-                (current-block (get-current-block))
             )
                 (asserts! (not executed) (err ERR_TX_EXECUTED))
                 (asserts! (not cancelled) (err ERR_TX_CANCELLED))
@@ -755,7 +747,7 @@
                     (cancelled (get cancelled tx))
                     (approval-count (get approval-count tx))
                     (expires-at (get expires-at tx))
-                    (current-block (get-current-block))
+                    (current-block (block-height))
                     (tx-type (get tx-type tx))
                 )
                     (asserts! (not executed) (err ERR_TX_EXECUTED))
@@ -785,7 +777,16 @@
                             threshold-value: (get threshold-value tx)
                         })
                         
-                        (try! (execute-transaction-by-type tx))
+                        (try! (match tx-type
+                            TX_TYPE_TRANSFER (try! (execute-transfer tx))
+                            TX_TYPE_BATCH_TRANSFER (try! (execute-batch-transfer tx))
+                            TX_TYPE_ADD_MEMBER (try! (execute-add-member tx))
+                            TX_TYPE_REMOVE_MEMBER (try! (execute-remove-member tx))
+                            TX_TYPE_UPDATE_THRESHOLD (try! (execute-update-threshold tx))
+                            TX_TYPE_PAUSE (try! (execute-pause))
+                            TX_TYPE_UNPAUSE (try! (execute-unpause))
+                            (err ERR_INVALID_PROPOSAL_TYPE)
+                        ))
                         (var-set executed-transactions (+ (var-get executed-transactions) u1))
                         (print {event: "transaction-executed", tx-id: tx-id, tx-type: tx-type})
                         (ok true)
@@ -793,21 +794,6 @@
                 )
                 (err ERR_TX_NOT_FOUND)
             )
-        )
-    )
-)
-
-(define-private (execute-transaction-by-type (tx {proposer: principal, tx-type: uint, recipient: principal, amount: uint, token-contract: (optional principal), executed: bool, cancelled: bool, approval-count: uint, created-at: uint, expires-at: uint, metadata: (optional (string-utf8 500)), batch-transfers: (optional (list 10 {recipient: principal, amount: uint, token-contract: (optional principal)})), new-member: (optional principal), threshold-value: (optional uint)}))
-    (let ((tx-type (get tx-type tx)))
-        (match tx-type
-            TX_TYPE_TRANSFER (try! (execute-transfer tx))
-            TX_TYPE_BATCH_TRANSFER (try! (execute-batch-transfer tx))
-            TX_TYPE_ADD_MEMBER (try! (execute-add-member tx))
-            TX_TYPE_REMOVE_MEMBER (try! (execute-remove-member tx))
-            TX_TYPE_UPDATE_THRESHOLD (try! (execute-update-threshold tx))
-            TX_TYPE_PAUSE (try! (execute-pause))
-            TX_TYPE_UNPAUSE (try! (execute-unpause))
-            (err ERR_INVALID_PROPOSAL_TYPE)
         )
     )
 )
@@ -832,14 +818,14 @@
     (match (get batch-transfers tx)
         transfers
         (begin
-            (try! (execute-batch-transfers transfers u0))
+            (try! (execute-batch-transfers-internal transfers u0))
             (ok true)
         )
         (err ERR_TX_NOT_FOUND)
     )
 )
 
-(define-private (execute-batch-transfers (transfers (list 10 {recipient: principal, amount: uint, token-contract: (optional principal)})) (index uint))
+(define-private (execute-batch-transfers-internal (transfers (list 10 {recipient: principal, amount: uint, token-contract: (optional principal)})) (index uint))
     (if (>= index (len transfers))
         (ok true)
         (let ((transfer (unwrap-panic (element-at transfers index))))
@@ -849,7 +835,7 @@
                     (get amount transfer)
                     (get token-contract transfer)
                 ))
-                (try! (execute-batch-transfers transfers (+ index u1)))
+                (try! (execute-batch-transfers-internal transfers (+ index u1)))
                 (ok true)
             )
         )
