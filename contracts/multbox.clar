@@ -476,7 +476,7 @@
             
             (var-set next-transaction-id (+ tx-id u1))
             (var-set total-transactions (+ (var-get total-transactions) u1))
-            (try! (approve-transaction-internal tx-id proposer))
+            (try! (approve-transaction-internal tx-id proposer current-block))
             (print {event: "update-threshold-proposed", tx-id: tx-id, proposer: proposer, new-threshold: new-threshold})
             (ok tx-id)
         )
