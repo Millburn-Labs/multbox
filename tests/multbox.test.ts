@@ -333,19 +333,24 @@ describe("BoardMultiSig Contract", () => {
       expect(approvalCount.result).toBeOk(uintCV(expectedApprovals));
       
       // Only execute if we have majority (11 or more)
+      // If we don't have enough unique members, skip execution test
       if (expectedApprovals >= 11) {
-
-      // Execute transaction (may fail if contract has no STX, but logic is correct)
-      const executeResult = simnet.callPublicFn(
-        "multbox",
-        "execute-transaction",
-        [uintCV(0)],
-        deployer
-      );
-      // The execution will attempt to transfer, which may fail if no balance
-      // but the important thing is that it passes the approval checks
-      // In a real scenario with balance, this would succeed
-      expect(executeResult.result).toBeOk(boolCV(true));
+        // Execute transaction (may fail if contract has no STX, but logic is correct)
+        const executeResult = simnet.callPublicFn(
+          "multbox",
+          "execute-transaction",
+          [uintCV(0)],
+          deployer
+        );
+        // The execution will attempt to transfer, which may fail if no balance
+        // but the important thing is that it passes the approval checks
+        // In a real scenario with balance, this would succeed
+        expect(executeResult.result).toBeOk(boolCV(true));
+      } else {
+        // Skip execution if we don't have enough unique members for majority
+        // This test requires at least 11 unique board members
+        console.warn(`Skipping execution: Only ${expectedApprovals} approvals available, need 11 for majority`);
+      }
     });
 
     it("should fail with insufficient approvals", () => {
@@ -409,11 +414,11 @@ describe("BoardMultiSig Contract", () => {
         );
       }
       
-      // If we don't have enough unique members, we can't test execution
-      // So we'll skip this test if we don't have at least 11 unique members total
-      const totalUniqueMembers = 1 + uniqueMembers.length; // proposer + unique others
-      if (totalUniqueMembers < 11) {
-        // Skip execution test if we don't have enough unique members
+      // Check if we have enough approvals for majority (11 total)
+      const totalApprovals = 1 + approvalsNeeded; // proposer + others
+      if (totalApprovals < 11) {
+        // Skip execution test if we don't have enough unique members for majority
+        console.warn(`Skipping execution: Only ${totalApprovals} approvals available, need 11 for majority`);
         return;
       }
 
