@@ -798,21 +798,6 @@
     )
 )
 
-(define-private (execute-transaction-by-type (tx {proposer: principal, tx-type: uint, recipient: principal, amount: uint, token-contract: (optional principal), executed: bool, cancelled: bool, approval-count: uint, created-at: uint, expires-at: uint, metadata: (optional (string-utf8 500)), batch-transfers: (optional (list 10 {recipient: principal, amount: uint, token-contract: (optional principal)})), new-member: (optional principal), threshold-value: (optional uint)}))
-    (let ((tx-type (get tx-type tx)))
-        (match tx-type
-            TX_TYPE_TRANSFER (try! (execute-transfer tx))
-            TX_TYPE_BATCH_TRANSFER (try! (execute-batch-transfer tx))
-            TX_TYPE_ADD_MEMBER (try! (execute-add-member tx))
-            TX_TYPE_REMOVE_MEMBER (try! (execute-remove-member tx))
-            TX_TYPE_UPDATE_THRESHOLD (try! (execute-update-threshold tx))
-            TX_TYPE_PAUSE (try! (execute-pause))
-            TX_TYPE_UNPAUSE (try! (execute-unpause))
-            (err ERR_INVALID_PROPOSAL_TYPE)
-        )
-    )
-)
-
 (define-private (execute-transfer (tx {proposer: principal, tx-type: uint, recipient: principal, amount: uint, token-contract: (optional principal), executed: bool, cancelled: bool, approval-count: uint, created-at: uint, expires-at: uint, metadata: (optional (string-utf8 500)), batch-transfers: (optional (list 10 {recipient: principal, amount: uint, token-contract: (optional principal)})), new-member: (optional principal), threshold-value: (optional uint)}))
     (let (
         (recipient (get recipient tx))
