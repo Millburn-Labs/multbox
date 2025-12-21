@@ -99,6 +99,18 @@ describe("BoardMultiSig Contract", () => {
   });
 
   describe("Transaction Proposal", () => {
+    beforeEach(() => {
+      // Initialize contract with 20 board members before each test
+      const members = boardMembers.map(m => standardPrincipalCV(m));
+      const initResult = simnet.callPublicFn(
+        "multbox",
+        "initialize",
+        [listCV(members)],
+        deployer
+      );
+      expect(initResult.result).toBeOk(ClarityValue.from(true));
+    });
+
     it("should allow board member to propose transaction", () => {
       const recipient = standardPrincipalCV(boardMembers[1]);
       const amount = uintCV(1000);
@@ -180,6 +192,16 @@ describe("BoardMultiSig Contract", () => {
 
   describe("Transaction Approval", () => {
     beforeEach(() => {
+      // Initialize contract with 20 board members before each test
+      const members = boardMembers.map(m => standardPrincipalCV(m));
+      const initResult = simnet.callPublicFn(
+        "multbox",
+        "initialize",
+        [listCV(members)],
+        deployer
+      );
+      expect(initResult.result).toBeOk(ClarityValue.from(true));
+
       // Create a transaction for testing approvals
       const recipient = standardPrincipalCV(boardMembers[1]);
       const amount = uintCV(1000);
@@ -257,6 +279,17 @@ describe("BoardMultiSig Contract", () => {
   });
 
   describe("Transaction Execution", () => {
+    beforeEach(() => {
+      // Initialize contract with 20 board members before each test
+      const members = boardMembers.map(m => standardPrincipalCV(m));
+      const initResult = simnet.callPublicFn(
+        "multbox",
+        "initialize",
+        [listCV(members)],
+        deployer
+      );
+      expect(initResult.result).toBeOk(ClarityValue.from(true));
+    });
 
     it("should execute transaction with majority approval (11/20)", () => {
       // Note: This test verifies the execution logic works correctly
@@ -395,6 +428,18 @@ describe("BoardMultiSig Contract", () => {
   });
 
   describe("Read-only Functions", () => {
+    beforeEach(() => {
+      // Initialize contract with 20 board members before each test
+      const members = boardMembers.map(m => standardPrincipalCV(m));
+      const initResult = simnet.callPublicFn(
+        "multbox",
+        "initialize",
+        [listCV(members)],
+        deployer
+      );
+      expect(initResult.result).toBeOk(ClarityValue.from(true));
+    });
+
     it("should return transaction details", () => {
       // Propose a transaction
       const recipient = standardPrincipalCV(boardMembers[1]);
