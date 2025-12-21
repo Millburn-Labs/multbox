@@ -606,7 +606,7 @@
     )
 )
 
-(define-private (approve-transaction-internal (tx-id uint) (approver principal))
+(define-private (approve-transaction-internal (tx-id uint) (approver principal) (current-block uint))
     (let (
         (tx-opt (map-get? transactions tx-id))
         (approvers-opt (map-get? transaction-approvers tx-id))
@@ -624,7 +624,6 @@
                 (executed (get executed tx))
                 (cancelled (get cancelled tx))
                 (expires-at (get expires-at tx))
-                (current-block (get-current-block))
             )
                 (asserts! (not executed) (err ERR_TX_EXECUTED))
                 (asserts! (not cancelled) (err ERR_TX_CANCELLED))
