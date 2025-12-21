@@ -192,10 +192,6 @@
     (var-get paused)
 )
 
-(define-private (get-current-block)
-    (block-height)
-)
-
 (define-private (calculate-expiry (created-at uint))
     (+ created-at (* PROPOSAL_EXPIRY_DAYS BLOCKS_PER_DAY))
 )
