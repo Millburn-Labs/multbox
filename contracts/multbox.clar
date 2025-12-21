@@ -978,7 +978,7 @@
 )
 
 ;; Helper to execute batch transfers recursively
-(define-private (execute-batch-transfers (transfers (list 10 {recipient: principal, amount: uint, token-contract: (optional principal), token-trait: (optional <SIP010Trait>)})) (index uint))
+(define-private (execute-batch-transfers (transfers (list 10 {recipient: principal, amount: uint, token-contract: (optional principal)})) (index uint))
     (if (>= index (len transfers))
         (ok true)
         (let ((transfer (unwrap-panic (element-at transfers index))))
@@ -987,7 +987,6 @@
                     (get recipient transfer)
                     (get amount transfer)
                     (get token-contract transfer)
-                    (get token-trait transfer)
                 ))
                 (try! (execute-batch-transfers transfers (+ index u1)))
                 (ok true)
