@@ -37,7 +37,7 @@ describe("BoardMultiSig Contract", () => {
         [listCV(members)],
         deployer
       );
-      expect(result1.result).toBeOk(ClarityValue.from(true));
+      expect(result1.result).toBeOk(boolCV(true));
 
       const result2 = simnet.callPublicFn(
         "multbox",
@@ -254,7 +254,7 @@ describe("BoardMultiSig Contract", () => {
         [uintCV(0)],
         boardMembers[1]
       );
-      expect(result1.result).toBeOk(ClarityValue.from(true));
+      expect(result1.result).toBeOk(boolCV(true));
 
       // Second approval (should fail)
       const result2 = simnet.callPublicFn(
@@ -470,7 +470,7 @@ describe("BoardMultiSig Contract", () => {
         [],
         deployer
       );
-      expect(initialized.result).toBeSome(ClarityValue.from(true));
+      expect(initialized.result).toBeSome(boolCV(true));
     });
   });
 });
