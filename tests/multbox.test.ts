@@ -186,7 +186,7 @@ describe("BoardMultiSig Contract", () => {
         [uintCV(0), standardPrincipalCV(boardMembers[0])],
         deployer
       );
-      expect(hasApproved.result).toBe(true);
+      expect(hasApproved.result).toEqual(boolCV(true));
     });
   });
 
@@ -473,7 +473,7 @@ describe("BoardMultiSig Contract", () => {
         [],
         deployer
       );
-      expect(initialized.result).toBe(true);
+      expect(initialized.result).toEqual(boolCV(true));
     });
   });
 });
