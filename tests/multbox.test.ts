@@ -177,7 +177,7 @@ describe("BoardMultiSig Contract", () => {
         [uintCV(0)],
         deployer
       );
-      expect(approvalCount.result).toBeUint(1);
+      expect(approvalCount.result).toBeOk(uintCV(1));
 
       // Check if proposer has approved
       const hasApproved = simnet.callReadOnlyFn(
@@ -231,7 +231,7 @@ describe("BoardMultiSig Contract", () => {
         [uintCV(0)],
         deployer
       );
-      expect(approvalCount.result).toBeUint(2);
+      expect(approvalCount.result).toBeOk(uintCV(2));
     });
 
     it("should fail if non-board member approves", () => {
@@ -325,7 +325,7 @@ describe("BoardMultiSig Contract", () => {
         [uintCV(0)],
         deployer
       );
-      expect(approvalCount.result).toBeUint(11);
+      expect(approvalCount.result).toBeOk(uintCV(11));
 
       // Execute transaction (may fail if contract has no STX, but logic is correct)
       const executeResult = simnet.callPublicFn(
