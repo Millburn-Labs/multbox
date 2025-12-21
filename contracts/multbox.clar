@@ -386,7 +386,7 @@
             
             (var-set next-transaction-id (+ tx-id u1))
             (var-set total-transactions (+ (var-get total-transactions) u1))
-            (try! (approve-transaction-internal tx-id proposer))
+            (try! (approve-transaction-internal tx-id proposer current-block))
             (print {event: "add-member-proposed", tx-id: tx-id, proposer: proposer, new-member: new-member})
             (ok tx-id)
         )
@@ -431,7 +431,7 @@
             
             (var-set next-transaction-id (+ tx-id u1))
             (var-set total-transactions (+ (var-get total-transactions) u1))
-            (try! (approve-transaction-internal tx-id proposer))
+            (try! (approve-transaction-internal tx-id proposer current-block))
             (print {event: "remove-member-proposed", tx-id: tx-id, proposer: proposer, member-to-remove: member-to-remove})
             (ok tx-id)
         )
