@@ -250,5 +250,3 @@ clarinet deploy --mainnet
 - Majority threshold is fixed at 11/20
 
 ## License
-
-ISC
