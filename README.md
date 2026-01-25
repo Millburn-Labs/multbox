@@ -248,5 +248,3 @@ clarinet deploy --mainnet
 - Currently supports STX transfers only (token transfers require contract identifier)
 - Board members cannot be changed after initialization
 - Majority threshold is fixed at 11/20
-
-## License
