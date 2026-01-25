@@ -258,7 +258,7 @@
         (proposer tx-sender)
         (is-member (check-board-member proposer))
         (tx-id (var-get next-transaction-id))
-        (current-block (block-height))
+        (current-block block-height)
         (expires-at (calculate-expiry current-block))
         (is-paused (check-paused))
     )
@@ -306,7 +306,7 @@
         (proposer tx-sender)
         (is-member (check-board-member proposer))
         (tx-id (var-get next-transaction-id))
-        (current-block (block-height))
+        (current-block block-height)
         (expires-at (calculate-expiry current-block))
         (is-paused (check-paused))
         (transfer-count (len transfers))
@@ -356,7 +356,7 @@
         (proposer tx-sender)
         (is-member (check-board-member proposer))
         (tx-id (var-get next-transaction-id))
-        (current-block (block-height))
+        (current-block block-height)
         (expires-at (calculate-expiry current-block))
         (is-paused (check-paused))
         (already-member (check-board-member new-member))
@@ -401,7 +401,7 @@
         (proposer tx-sender)
         (is-member (check-board-member proposer))
         (tx-id (var-get next-transaction-id))
-        (current-block (block-height))
+        (current-block block-height)
         (expires-at (calculate-expiry current-block))
         (is-paused (check-paused))
         (is-member-to-remove (check-board-member member-to-remove))
@@ -446,7 +446,7 @@
         (proposer tx-sender)
         (is-member (check-board-member proposer))
         (tx-id (var-get next-transaction-id))
-        (current-block (block-height))
+        (current-block block-height)
         (expires-at (calculate-expiry current-block))
         (is-paused (check-paused))
     )
@@ -490,7 +490,7 @@
         (proposer tx-sender)
         (is-member (check-board-member proposer))
         (tx-id (var-get next-transaction-id))
-        (current-block (block-height))
+        (current-block block-height)
         (expires-at (calculate-expiry current-block))
         (is-paused (check-paused))
     )
@@ -532,7 +532,7 @@
         (proposer tx-sender)
         (is-member (check-board-member proposer))
         (tx-id (var-get next-transaction-id))
-        (current-block (block-height))
+        (current-block block-height)
         (expires-at (calculate-expiry current-block))
         (is-paused (check-paused))
     )
@@ -576,7 +576,7 @@
         (approver tx-sender)
         (is-member (check-board-member approver))
         (is-paused (check-paused))
-        (current-block (block-height))
+        (current-block block-height)
     )
         (begin
             (asserts! (check-initialized) (err ERR_NOT_INITIALIZED))
@@ -667,6 +667,10 @@
     )
 )
 
+(define-private (is-not-caller (member principal))
+    (not (is-eq member tx-sender))
+)
+
 (define-private (revoke-approval-internal (tx-id uint) (approver principal))
     (let (
         (tx-opt (map-get? transactions tx-id))
@@ -688,7 +692,7 @@
                         (asserts! (not executed) (err ERR_TX_EXECUTED))
                         (asserts! (not cancelled) (err ERR_TX_CANCELLED))
                         
-                        (let ((new-approvers (filter approvers (lambda (member) (not (is-eq member approver))))))
+                        (let ((new-approvers (filter is-not-caller approvers)))
                             (match (as-max-len? new-approvers u20)
                                 filtered-approvers
                                 (begin
@@ -730,7 +734,7 @@
 ;; SECTION 10: TRANSACTION EXECUTION
 ;; ============================================================================
 
-(define-public (execute-transaction (tx-id uint))
+(define-public (execute-transaction (tx-id uint) (token-trait (optional <SIP010Trait>)))
     (let (
         (tx-opt (map-get? transactions tx-id))
         (is-paused (check-paused))
@@ -747,7 +751,7 @@
                     (cancelled (get cancelled tx))
                     (approval-count (get approval-count tx))
                     (expires-at (get expires-at tx))
-                    (current-block (block-height))
+                    (current-block block-height)
                     (tx-type (get tx-type tx))
                 )
                     (asserts! (not executed) (err ERR_TX_EXECUTED))
@@ -777,16 +781,14 @@
                             threshold-value: (get threshold-value tx)
                         })
                         
-                        (try! (match tx-type
-                            TX_TYPE_TRANSFER (try! (execute-transfer tx))
-                            TX_TYPE_BATCH_TRANSFER (try! (execute-batch-transfer tx))
-                            TX_TYPE_ADD_MEMBER (try! (execute-add-member tx))
-                            TX_TYPE_REMOVE_MEMBER (try! (execute-remove-member tx))
-                            TX_TYPE_UPDATE_THRESHOLD (try! (execute-update-threshold tx))
-                            TX_TYPE_PAUSE (try! (execute-pause))
-                            TX_TYPE_UNPAUSE (try! (execute-unpause))
-                            (err ERR_INVALID_PROPOSAL_TYPE)
-                        ))
+                        (try! (if (is-eq tx-type TX_TYPE_TRANSFER) (execute-transfer tx token-trait)
+                            (if (is-eq tx-type TX_TYPE_BATCH_TRANSFER) (execute-batch-transfer tx token-trait)
+                            (if (is-eq tx-type TX_TYPE_ADD_MEMBER) (execute-add-member tx)
+                            (if (is-eq tx-type TX_TYPE_REMOVE_MEMBER) (execute-remove-member tx)
+                            (if (is-eq tx-type TX_TYPE_UPDATE_THRESHOLD) (execute-update-threshold tx)
+                            (if (is-eq tx-type TX_TYPE_PAUSE) (execute-pause)
+                            (if (is-eq tx-type TX_TYPE_UNPAUSE) (execute-unpause)
+                            (err ERR_INVALID_PROPOSAL_TYPE)))))))))
                         (var-set executed-transactions (+ (var-get executed-transactions) u1))
                         (print {event: "transaction-executed", tx-id: tx-id, tx-type: tx-type})
                         (ok true)
@@ -798,59 +800,59 @@
     )
 )
 
-(define-private (execute-transfer (tx {proposer: principal, tx-type: uint, recipient: principal, amount: uint, token-contract: (optional principal), executed: bool, cancelled: bool, approval-count: uint, created-at: uint, expires-at: uint, metadata: (optional (string-utf8 500)), batch-transfers: (optional (list 10 {recipient: principal, amount: uint, token-contract: (optional principal)})), new-member: (optional principal), threshold-value: (optional uint)}))
+(define-private (execute-single-transfer (recipient principal) (amount uint) (token-contract (optional principal)) (token-trait (optional <SIP010Trait>)))
+    (match token-contract contract-principal
+        (match token-trait trait
+            (begin
+                (asserts! (is-eq (contract-of trait) contract-principal) (err ERR_INVALID_PROPOSAL_TYPE))
+                (match (contract-call? trait transfer amount tx-sender recipient none)
+                    result (ok true)
+                    error-code (err ERR_TOKEN_TRANSFER_FAILED)
+                )
+            )
+            (err ERR_INVALID_PROPOSAL_TYPE)
+        )
+        (stx-transfer? amount tx-sender recipient)
+    )
+)
+
+(define-private (execute-transfer (tx {proposer: principal, tx-type: uint, recipient: principal, amount: uint, token-contract: (optional principal), executed: bool, cancelled: bool, approval-count: uint, created-at: uint, expires-at: uint, metadata: (optional (string-utf8 500)), batch-transfers: (optional (list 10 {recipient: principal, amount: uint, token-contract: (optional principal)})), new-member: (optional principal), threshold-value: (optional uint)}) (token-trait (optional <SIP010Trait>)))
     (let (
         (recipient (get recipient tx))
         (amount (get amount tx))
         (token-contract (get token-contract tx))
     )
-        (match token-contract contract-principal
-            (match (contract-call? contract-principal transfer amount tx-sender recipient none)
-                (ok result) (ok true)
-                (err error-code) (err ERR_TOKEN_TRANSFER_FAILED)
-            )
-            (stx-transfer? amount tx-sender recipient)
-        )
+        (execute-single-transfer recipient amount token-contract token-trait)
     )
 )
 
-(define-private (execute-batch-transfer (tx {proposer: principal, tx-type: uint, recipient: principal, amount: uint, token-contract: (optional principal), executed: bool, cancelled: bool, approval-count: uint, created-at: uint, expires-at: uint, metadata: (optional (string-utf8 500)), batch-transfers: (optional (list 10 {recipient: principal, amount: uint, token-contract: (optional principal)})), new-member: (optional principal), threshold-value: (optional uint)}))
+(define-private (batch-transfer-iter (transfer {recipient: principal, amount: uint, token-contract: (optional principal)}) (previous-result (response (optional <SIP010Trait>) uint)))
+    (match previous-result
+        trait-opt
+        (begin
+            (try! (execute-single-transfer 
+                (get recipient transfer)
+                (get amount transfer)
+                (get token-contract transfer)
+                trait-opt
+            ))
+            (ok trait-opt)
+        )
+        err-val (err err-val)
+    )
+)
+
+(define-private (execute-batch-transfer (tx {proposer: principal, tx-type: uint, recipient: principal, amount: uint, token-contract: (optional principal), executed: bool, cancelled: bool, approval-count: uint, created-at: uint, expires-at: uint, metadata: (optional (string-utf8 500)), batch-transfers: (optional (list 10 {recipient: principal, amount: uint, token-contract: (optional principal)})), new-member: (optional principal), threshold-value: (optional uint)}) (token-trait (optional <SIP010Trait>)))
     (match (get batch-transfers tx)
         transfers
-        (begin
-            (try! (execute-batch-transfers-internal transfers u0))
-            (ok true)
+        (match (fold batch-transfer-iter transfers (ok token-trait))
+            ok-val (ok true)
+            err-val (err err-val)
         )
         (err ERR_TX_NOT_FOUND)
     )
 )
 
-(define-private (execute-batch-transfers-internal (transfers (list 10 {recipient: principal, amount: uint, token-contract: (optional principal)})) (index uint))
-    (if (>= index (len transfers))
-        (ok true)
-        (let ((transfer (unwrap-panic (element-at transfers index))))
-            (begin
-                (try! (execute-single-transfer 
-                    (get recipient transfer)
-                    (get amount transfer)
-                    (get token-contract transfer)
-                ))
-                (try! (execute-batch-transfers-internal transfers (+ index u1)))
-                (ok true)
-            )
-        )
-    )
-)
-
-(define-private (execute-single-transfer (recipient principal) (amount uint) (token-contract (optional principal)))
-    (match token-contract contract-principal
-        (match (contract-call? contract-principal transfer amount tx-sender recipient none)
-            (ok result) (ok true)
-            (err error-code) (err ERR_TOKEN_TRANSFER_FAILED)
-        )
-        (stx-transfer? amount tx-sender recipient)
-    )
-)
 
 (define-private (execute-add-member (tx {proposer: principal, tx-type: uint, recipient: principal, amount: uint, token-contract: (optional principal), executed: bool, cancelled: bool, approval-count: uint, created-at: uint, expires-at: uint, metadata: (optional (string-utf8 500)), batch-transfers: (optional (list 10 {recipient: principal, amount: uint, token-contract: (optional principal)})), new-member: (optional principal), threshold-value: (optional uint)}))
     (match (get new-member tx)
