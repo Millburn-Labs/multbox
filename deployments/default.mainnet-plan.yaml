@@ -11,8 +11,8 @@ plan:
         - contract-publish:
             contract-name: multbox
             expected-sender: SP1ZE73TWJ4WBFHZBBQJAMJDV23K678RXWPDGNHYF
-            cost: 388930
+            cost: 390350
             path: contracts/multbox.clar
             anchor-block-only: true
-            clarity-version: 4
+            clarity-version: 2
       epoch: "3.3"
