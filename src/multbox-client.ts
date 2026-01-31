@@ -13,7 +13,6 @@ import {
   FinishedAuthData,
 } from '@stacks/connect';
 import {
-  AnchorMode,
   broadcastTransaction,
   ContractCallOptions,
   makeContractCall,
@@ -26,8 +25,8 @@ import {
   someCV,
   noneCV,
   ClarityValue,
+  StacksTransactionWire,
 } from '@stacks/transactions';
-import type { StacksNetwork } from '@stacks/network';
 
 export interface MultboxClientConfig {
   contractAddress: string;
@@ -63,7 +62,6 @@ export interface GovernanceProposalParams {
 export class MultboxClient {
   private contractAddress: string;
   private contractName: string;
-  private network: StacksNetwork;
   private networkName: 'mainnet' | 'testnet';
   private appName: string;
   private appIconUrl?: string;
@@ -79,8 +77,6 @@ export class MultboxClient {
 
     // Set up network
     this.networkName = config.network === 'mainnet' ? 'mainnet' : 'testnet';
-    // Network object will be created when needed via networkName
-    this.network = this.networkName as unknown as StacksNetwork;
 
     // Initialize user session if in browser environment
     if (typeof window !== 'undefined') {
@@ -135,12 +131,16 @@ export class MultboxClient {
       throw new Error('connectWallet can only be called in a browser environment');
     }
 
+    const appDetails: { name: string; icon?: string } = {
+      name: this.appName,
+    };
+    if (this.appIconUrl) {
+      appDetails.icon = this.appIconUrl;
+    }
+
     return new Promise((resolve, reject) => {
       showConnect({
-        appDetails: {
-          name: this.appName,
-          ...(this.appIconUrl && { icon: this.appIconUrl }),
-        },
+        appDetails: appDetails as any,
         onFinish: (data) => {
           resolve(data);
         },
@@ -421,6 +421,13 @@ export class MultboxClient {
       throw new Error('openContractCall can only be called in a browser environment');
     }
 
+    const appDetails: { name: string; icon?: string } = {
+      name: this.appName,
+    };
+    if (this.appIconUrl) {
+      appDetails.icon = this.appIconUrl;
+    }
+
     return new Promise((resolve, reject) => {
       openContractCall({
         contractAddress: options.contractAddress,
@@ -428,20 +435,18 @@ export class MultboxClient {
         functionName: options.functionName,
         functionArgs: options.functionArgs || [],
         network: this.networkName,
-        appDetails: {
-          name: this.appName,
-          icon: this.appIconUrl,
-        },
-        postConditionMode: options.postConditionMode || PostConditionMode.Allow,
-        postConditions: options.postConditions || [],
+        appDetails: appDetails as any,
+        postConditionMode: (options.postConditionMode || PostConditionMode.Allow) as any,
+        postConditions: (options.postConditions || []) as any,
         onFinish: () => {
           resolve();
         },
         onCancel: () => {
           reject(new Error('User cancelled transaction'));
         },
-        fee: options.fee,
-        sponsored: options.sponsored,
+        ...(options.fee !== undefined && typeof options.fee === 'number' && { fee: options.fee }),
+        ...(options.fee !== undefined && typeof options.fee === 'string' && { fee: options.fee }),
+        ...(options.sponsored !== undefined && { sponsored: options.sponsored }),
       });
     });
   }
@@ -468,17 +473,19 @@ export class MultboxClient {
       network: this.networkName,
       postConditionMode: PostConditionMode.Allow,
       postConditions: [],
-      anchorMode: AnchorMode.Any,
-      fee: options.fee,
-      nonce: options.nonce,
-      sponsored: options.sponsored,
+      ...(options.fee !== undefined && { fee: typeof options.fee === 'bigint' ? Number(options.fee) : options.fee }),
+      ...(options.nonce !== undefined && { nonce: options.nonce }),
+      ...(options.sponsored !== undefined && { sponsored: options.sponsored }),
     });
   }
 
   /**
    * Broadcast a transaction
    */
-  async broadcastTransaction(tx: string | Uint8Array) {
-    return broadcastTransaction(tx, this.networkName);
+  async broadcastTransaction(tx: StacksTransactionWire) {
+    return broadcastTransaction({
+      transaction: tx,
+      network: this.networkName,
+    });
   }
 }
