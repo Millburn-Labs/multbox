@@ -6,13 +6,12 @@
  */
 
 import {
-  callReadOnlyFunction,
+  fetchCallReadOnlyFunction,
   cvToValue,
   standardPrincipalCV,
   uintCV,
   cvToString,
 } from '@stacks/transactions';
-import type { StacksNetwork } from '@stacks/network';
 
 export interface MultboxReaderConfig {
   contractAddress: string;
@@ -65,7 +64,7 @@ export class MultboxReader {
    * Check if a principal is a board member
    */
   async isBoardMember(member: string): Promise<boolean> {
-    const result = await callReadOnlyFunction({
+    const result = await fetchCallReadOnlyFunction({
       contractAddress: this.contractAddress,
       contractName: this.contractName,
       functionName: 'is-board-member',
@@ -81,7 +80,7 @@ export class MultboxReader {
    * Get the total number of board members
    */
   async getBoardMemberCount(): Promise<number> {
-    const result = await callReadOnlyFunction({
+    const result = await fetchCallReadOnlyFunction({
       contractAddress: this.contractAddress,
       contractName: this.contractName,
       functionName: 'get-board-member-count',
@@ -97,7 +96,7 @@ export class MultboxReader {
    * Get transaction details by ID
    */
   async getTransaction(txId: number | bigint): Promise<Transaction | null> {
-    const result = await callReadOnlyFunction({
+    const result = await fetchCallReadOnlyFunction({
       contractAddress: this.contractAddress,
       contractName: this.contractName,
       functionName: 'get-transaction',
@@ -118,7 +117,7 @@ export class MultboxReader {
    * Check if a member has approved a transaction
    */
   async hasApproved(txId: number | bigint, member: string): Promise<boolean> {
-    const result = await callReadOnlyFunction({
+    const result = await fetchCallReadOnlyFunction({
       contractAddress: this.contractAddress,
       contractName: this.contractName,
       functionName: 'has-approved',
@@ -134,7 +133,7 @@ export class MultboxReader {
    * Get the approval count for a transaction
    */
   async getApprovalCount(txId: number | bigint): Promise<number> {
-    const result = await callReadOnlyFunction({
+    const result = await fetchCallReadOnlyFunction({
       contractAddress: this.contractAddress,
       contractName: this.contractName,
       functionName: 'get-approval-count',
@@ -150,7 +149,7 @@ export class MultboxReader {
    * Get list of approvers for a transaction
    */
   async getApprovers(txId: number | bigint): Promise<string[]> {
-    const result = await callReadOnlyFunction({
+    const result = await fetchCallReadOnlyFunction({
       contractAddress: this.contractAddress,
       contractName: this.contractName,
       functionName: 'get-approvers',
@@ -175,7 +174,7 @@ export class MultboxReader {
    * Get transaction expiry block height
    */
   async getTransactionExpiresAt(txId: number | bigint): Promise<number> {
-    const result = await callReadOnlyFunction({
+    const result = await fetchCallReadOnlyFunction({
       contractAddress: this.contractAddress,
       contractName: this.contractName,
       functionName: 'get-transaction-expires-at',
@@ -191,7 +190,7 @@ export class MultboxReader {
    * Get total number of transactions
    */
   async getTotalTransactions(): Promise<number> {
-    const result = await callReadOnlyFunction({
+    const result = await fetchCallReadOnlyFunction({
       contractAddress: this.contractAddress,
       contractName: this.contractName,
       functionName: 'get-total-transactions',
@@ -207,7 +206,7 @@ export class MultboxReader {
    * Get number of executed transactions
    */
   async getExecutedTransactions(): Promise<number> {
-    const result = await callReadOnlyFunction({
+    const result = await fetchCallReadOnlyFunction({
       contractAddress: this.contractAddress,
       contractName: this.contractName,
       functionName: 'get-executed-transactions',
@@ -223,7 +222,7 @@ export class MultboxReader {
    * Get number of cancelled transactions
    */
   async getCancelledTransactions(): Promise<number> {
-    const result = await callReadOnlyFunction({
+    const result = await fetchCallReadOnlyFunction({
       contractAddress: this.contractAddress,
       contractName: this.contractName,
       functionName: 'get-cancelled-transactions',
@@ -239,7 +238,7 @@ export class MultboxReader {
    * Get number of expired transactions
    */
   async getExpiredTransactions(): Promise<number> {
-    const result = await callReadOnlyFunction({
+    const result = await fetchCallReadOnlyFunction({
       contractAddress: this.contractAddress,
       contractName: this.contractName,
       functionName: 'get-expired-transactions',
@@ -255,7 +254,7 @@ export class MultboxReader {
    * Get number of pending transactions
    */
   async getPendingTransactionsCount(): Promise<number> {
-    const result = await callReadOnlyFunction({
+    const result = await fetchCallReadOnlyFunction({
       contractAddress: this.contractAddress,
       contractName: this.contractName,
       functionName: 'get-pending-transactions-count',
@@ -271,7 +270,7 @@ export class MultboxReader {
    * Get the current approval threshold
    */
   async getApprovalThreshold(): Promise<number> {
-    const result = await callReadOnlyFunction({
+    const result = await fetchCallReadOnlyFunction({
       contractAddress: this.contractAddress,
       contractName: this.contractName,
       functionName: 'get-approval-threshold',
@@ -287,7 +286,7 @@ export class MultboxReader {
    * Check if contract is paused
    */
   async isPaused(): Promise<boolean> {
-    const result = await callReadOnlyFunction({
+    const result = await fetchCallReadOnlyFunction({
       contractAddress: this.contractAddress,
       contractName: this.contractName,
       functionName: 'is-paused',
@@ -303,7 +302,7 @@ export class MultboxReader {
    * Check if contract is initialized
    */
   async isInitialized(): Promise<boolean> {
-    const result = await callReadOnlyFunction({
+    const result = await fetchCallReadOnlyFunction({
       contractAddress: this.contractAddress,
       contractName: this.contractName,
       functionName: 'is-initialized',
