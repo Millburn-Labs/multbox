@@ -7,7 +7,6 @@
 
 import {
   openContractCall,
-  openContractDeploy,
   UserSession,
   showConnect,
   AuthOptions,
@@ -17,30 +16,19 @@ import {
   AnchorMode,
   broadcastTransaction,
   ContractCallOptions,
-  ContractDeployOptions,
   makeContractCall,
-  makeContractDeploy,
   PostConditionMode,
-  StacksNetwork,
-  StacksTestnet,
-  StacksMainnet,
   getAddressFromPrivateKey,
-  createAssetInfo,
   standardPrincipalCV,
   uintCV,
-  optionalCVOf,
   stringAsciiCV,
   listCV,
   tupleCV,
   someCV,
   noneCV,
   ClarityValue,
-  TransactionVersion,
-  getNonce,
-  estimateTransfer,
-  estimateContractFunctionCall,
 } from '@stacks/transactions';
-import { StacksApi } from '@stacks/transactions';
+import type { StacksNetwork } from '@stacks/network';
 
 export interface MultboxClientConfig {
   contractAddress: string;
@@ -77,6 +65,7 @@ export class MultboxClient {
   private contractAddress: string;
   private contractName: string;
   private network: StacksNetwork;
+  private networkName: 'mainnet' | 'testnet';
   private appName: string;
   private appIconUrl?: string;
   private redirectPath: string;
@@ -90,11 +79,9 @@ export class MultboxClient {
     this.redirectPath = config.redirectPath || '/';
 
     // Set up network
-    if (config.network === 'mainnet') {
-      this.network = new StacksMainnet();
-    } else {
-      this.network = new StacksTestnet();
-    }
+    this.networkName = config.network === 'mainnet' ? 'mainnet' : 'testnet';
+    // Network object will be created when needed via networkName
+    this.network = this.networkName as unknown as StacksNetwork;
 
     // Initialize user session if in browser environment
     if (typeof window !== 'undefined') {
@@ -110,10 +97,10 @@ export class MultboxClient {
   }
 
   /**
-   * Get the current network
+   * Get the current network name
    */
-  getNetwork(): StacksNetwork {
-    return this.network;
+  getNetworkName(): 'mainnet' | 'testnet' {
+    return this.networkName;
   }
 
   /**
@@ -437,7 +424,7 @@ export class MultboxClient {
         contractName: options.contractName,
         functionName: options.functionName,
         functionArgs: options.functionArgs || [],
-        network: this.network,
+        network: this.networkName,
         appDetails: {
           name: this.appName,
           icon: this.appIconUrl,
@@ -450,7 +437,6 @@ export class MultboxClient {
         onCancel: () => {
           reject(new Error('User cancelled transaction'));
         },
-        anchorMode: options.anchorMode || AnchorMode.Any,
         fee: options.fee,
         sponsored: options.sponsored,
       });
@@ -463,19 +449,12 @@ export class MultboxClient {
   async buildContractCall(
     functionName: string,
     functionArgs: ClarityValue[],
-    options?: Partial<ContractCallOptions>
+    options: { senderKey: string; nonce?: number; fee?: number | bigint; sponsored?: boolean }
   ) {
-    const senderKey = options?.senderKey;
+    const senderKey = options.senderKey;
     if (!senderKey) {
       throw new Error('senderKey is required for buildContractCall');
     }
-
-    const senderAddress = getAddressFromPrivateKey(
-      senderKey,
-      this.network.version
-    );
-
-    const nonce = options?.nonce ?? (await getNonce(senderAddress, this.network));
 
     return makeContractCall({
       contractAddress: this.contractAddress,
@@ -483,13 +462,13 @@ export class MultboxClient {
       functionName,
       functionArgs,
       senderKey,
-      network: this.network,
-      postConditionMode: options?.postConditionMode || PostConditionMode.Allow,
-      postConditions: options?.postConditions || [],
-      anchorMode: options?.anchorMode || AnchorMode.Any,
-      fee: options?.fee,
-      nonce,
-      sponsored: options?.sponsored,
+      network: this.networkName,
+      postConditionMode: PostConditionMode.Allow,
+      postConditions: [],
+      anchorMode: AnchorMode.Any,
+      fee: options.fee,
+      nonce: options.nonce,
+      sponsored: options.sponsored,
     });
   }
 
@@ -497,25 +476,6 @@ export class MultboxClient {
    * Broadcast a transaction
    */
   async broadcastTransaction(tx: string | Uint8Array) {
-    return broadcastTransaction(tx, this.network);
-  }
-
-  /**
-   * Estimate transaction fee
-   */
-  async estimateFee(
-    functionName: string,
-    functionArgs: ClarityValue[],
-    senderAddress: string
-  ) {
-    const tx = await this.buildContractCall(functionName, functionArgs, {
-      senderKey: '0'.repeat(64), // Dummy key for estimation
-    } as any);
-
-    return estimateContractFunctionCall({
-      transaction: tx,
-      network: this.network,
-      senderAddress,
-    });
+    return broadcastTransaction(tx, this.networkName);
   }
 }
