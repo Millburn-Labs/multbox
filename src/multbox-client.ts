@@ -18,7 +18,6 @@ import {
   ContractCallOptions,
   makeContractCall,
   PostConditionMode,
-  getAddressFromPrivateKey,
   standardPrincipalCV,
   uintCV,
   stringAsciiCV,
@@ -85,9 +84,13 @@ export class MultboxClient {
 
     // Initialize user session if in browser environment
     if (typeof window !== 'undefined') {
+      const coreNode = this.networkName === 'mainnet' 
+        ? 'https://api.hiro.so'
+        : 'https://api.testnet.hiro.so';
+      
       this.userSession = new UserSession({
         appConfig: {
-          coreNode: this.network.coreApiUrl,
+          coreNode,
           redirectPath: this.redirectPath,
           manifestPath: '/manifest.json',
           scopes: ['publish_data', 'store_write'],
@@ -136,7 +139,7 @@ export class MultboxClient {
       showConnect({
         appDetails: {
           name: this.appName,
-          icon: this.appIconUrl,
+          ...(this.appIconUrl && { icon: this.appIconUrl }),
         },
         onFinish: (data) => {
           resolve(data);
